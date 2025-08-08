@@ -27,21 +27,9 @@ class PaymentHandler:
         self.package_details = Config.PACKAGE_DETAILS
         self.register_handlers()
         self.states = {}
-        self.register_payment_handlers()
 
     def register_handlers(self):
         # دسته‌بندی‌های اصلی
-        self.bot.add_handler(
-            self.bot.on_callback_query(filters.regex("^buy_new_service_menu$"))(self.buy_new_service_menu))
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^normal$"))(self.normal_buy_service))
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^lifetime$"))(self.lifetime_buy_service))
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^unlimited$"))(self.unlimited_buy_service))
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^longtime$"))(self.longtime_buy_service))
-
-        # بسته‌های خاص
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex(r"^(normal|lifetime|unlimited|longtime)_\d+$"))(
-            self.handle_package_selection))
-
         self.bot.add_handler(CallbackQueryHandler(
             self.buy_new_service_menu,
             filters.regex("^buy_new_service_menu$")
@@ -50,6 +38,48 @@ class PaymentHandler:
             self.normal_buy_service,
             filters.regex("^normal$")
         ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.lifetime_buy_service,
+            filters.regex("^lifetime$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.unlimited_buy_service,
+            filters.regex("^unlimited$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.longtime_buy_service,
+            filters.regex("^longtime$")
+        ))
+
+        # بسته‌های خاص
+        self.bot.add_handler(CallbackQueryHandler(
+            self.handle_package_selection,
+            filters.regex(r"^(normal|lifetime|unlimited|longtime)_\d+$")
+        ))
+
+        # بازگشت و تایید
+        self.bot.add_handler(CallbackQueryHandler(
+            self.back_to_category,
+            filters.regex(r"^back_to_(normal|lifetime|unlimited|longtime)$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.confirm_purchase,
+            filters.regex(r"^confirm_(.*)$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.back_to_vpn_menu,
+            filters.regex("^back_to_vpn_menu$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.money_managment,
+            filters.regex("^money_managment$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.cart_to_cart_menu,
+            filters.regex("^cart_to_cart_menu_incraise$")
+        ))
+
+        # سیستم افزایش موجودی
         self.bot.add_handler(MessageHandler(
             self.get_amount,
             filters.private & filters.text & filters.regex(r'^\d+$')
@@ -67,7 +97,7 @@ class PaymentHandler:
             filters.regex(r"^approve_balance_(\d+)_(\d+)$")
         ))
         self.bot.add_handler(CallbackQueryHandler(
-            self.start_balance_increase,  # اضافه شده
+            self.start_balance_increase,
             filters.regex("^start_balance_increase$")
         ))
         self.bot.add_handler(CallbackQueryHandler(
@@ -75,13 +105,6 @@ class PaymentHandler:
             filters.regex(r"^reject_balance_(\d+)$")
         ))
 
-        self.bot.add_handler(
-            self.bot.on_callback_query(filters.regex(r"^back_to_(normal|lifetime|unlimited|longtime)$"))(
-                self.back_to_category))
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex(r"^confirm_(.*)$"))(self.confirm_purchase))
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^back_to_vpn_menu$"))(self.back_to_vpn_menu))
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^money_managment$"))(self.money_managment))
-        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^cart_to_cart_menu_incraise$"))(self.cart_to_cart_menu))
     async def money_managment(self, client, callback_query: CallbackQuery):
         try:
             keyboard = [
