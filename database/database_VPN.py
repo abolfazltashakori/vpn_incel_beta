@@ -25,19 +25,17 @@ class VpnDatabase:
             )''')
         self.conn.commit()
 
-    def create_user_if_not_exists(self, telegram_id, first_name, last_name, username):
-        join_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    def create_user_if_not_exists(self, telegram_id, first_name, last_name, username, join_date=None):
         cur = self.conn.cursor()
+        join_date = join_date or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cur.execute('''INSERT OR IGNORE INTO users_vpn (
-            telegram_id, first_name, last_name, username,join_date
+            telegram_id, first_name, last_name, username, join_date
         ) VALUES (?,?,?,?,?)''', (
             telegram_id,
             first_name,
             last_name or "",
             username or "",
-            "",
-            False,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            join_date
         ))
         self.conn.commit()
 
