@@ -74,14 +74,8 @@ class PaymentHandler:
             self.money_managment,
             filters.regex("^money_managment$")
         ))
-        self.bot.add_handler(CallbackQueryHandler(
-            self.cart_to_cart_menu,
-            filters.regex("^money_menu_incraise$")
-        ))
-        self.bot.add_handler(CallbackQueryHandler(
-            self.cart_to_cart_menu,
-            filters.regex("^cart_to_cart_menu_incraise$")
-        ))
+
+
         self.bot.add_handler(CallbackQueryHandler(
             self.balance_increase_menu,
             filters.regex("^balance_increase_menu$")
