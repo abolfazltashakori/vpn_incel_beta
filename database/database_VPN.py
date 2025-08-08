@@ -64,13 +64,14 @@ class VpnDatabase:
         cur.execute('UPDATE users_vpn SET balance = ? WHERE telegram_id = ?', (new_balance, telegram_id))
         self.conn.commit()
 
-    def balance_increase(self,telegram_id,balance):
+    def balance_increase(self, telegram_id, balance):
         cur = self.conn.cursor()
-        cur.execute('select balance FROM users_vpn WHERE telegram_id = ?', (telegram_id,))
+        cur.execute('SELECT balance FROM users_vpn WHERE telegram_id = ?', (telegram_id,))
         result = cur.fetchone()
-        result[0] += balance
-        cur.execute('UPDATE users_vpn SET balance = ? WHERE telegram_id = ?', (result, telegram_id))
-        self.conn.commit()
+        if result:
+            new_balance = result[0] + balance  # محاسبه موجودی جدید
+            cur.execute('UPDATE users_vpn SET balance = ? WHERE telegram_id = ?', (new_balance, telegram_id))
+            self.conn.commit()
 
     def close(self):
         self.conn.close()

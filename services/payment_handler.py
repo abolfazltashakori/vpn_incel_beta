@@ -1,7 +1,12 @@
-# services/payment_handler.py
 import logging
 from pyrogram import filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from pyrogram.handlers import MessageHandler, CallbackQueryHandler  # اضافه شده
+from pyrogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    CallbackQuery,
+    Message  # اضافه شده
+)
 from pyrogram.errors import BadRequest
 from services.marzban_service import MarzbanService
 from utils.config import Config
@@ -10,6 +15,9 @@ from database.database_VPN import VpnDatabase
 
 logger = logging.getLogger(__name__)
 
+class PaymentStates:
+    GET_AMOUNT = 0
+    GET_RECEIPT = 1
 
 class PaymentHandler:
     def __init__(self, bot):
@@ -18,6 +26,8 @@ class PaymentHandler:
         self.vpn_db = VpnDatabase()
         self.package_details = Config.PACKAGE_DETAILS
         self.register_handlers()
+        self.states = {}
+        self.register_payment_handlers()
 
     def register_handlers(self):
         # دسته‌بندی‌های اصلی
@@ -32,12 +42,67 @@ class PaymentHandler:
         self.bot.add_handler(self.bot.on_callback_query(filters.regex(r"^(normal|lifetime|unlimited|longtime)_\d+$"))(
             self.handle_package_selection))
 
-        # بازگشت و تایید
+        self.bot.add_handler(CallbackQueryHandler(
+            self.buy_new_service_menu,
+            filters.regex("^buy_new_service_menu$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.normal_buy_service,
+            filters.regex("^normal$")
+        ))
+        self.bot.add_handler(MessageHandler(
+            self.get_amount,
+            filters.private & filters.text & filters.regex(r'^\d+$')
+        ))
+        self.bot.add_handler(MessageHandler(
+            self.get_receipt,
+            filters.private & filters.photo
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.cancel_operation,
+            filters.regex("^cancel_operation$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.approve_balance,
+            filters.regex(r"^approve_balance_(\d+)_(\d+)$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.start_balance_increase,  # اضافه شده
+            filters.regex("^start_balance_increase$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.reject_balance,
+            filters.regex(r"^reject_balance_(\d+)$")
+        ))
+
         self.bot.add_handler(
             self.bot.on_callback_query(filters.regex(r"^back_to_(normal|lifetime|unlimited|longtime)$"))(
                 self.back_to_category))
         self.bot.add_handler(self.bot.on_callback_query(filters.regex(r"^confirm_(.*)$"))(self.confirm_purchase))
         self.bot.add_handler(self.bot.on_callback_query(filters.regex("^back_to_vpn_menu$"))(self.back_to_vpn_menu))
+        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^money_managment$"))(self.money_managment))
+        self.bot.add_handler(self.bot.on_callback_query(filters.regex("^cart_to_cart_menu_incraise$"))(self.cart_to_cart_menu))
+    async def money_managment(self, client, callback_query: CallbackQuery):
+        try:
+            keyboard = [
+                [InlineKeyboardButton("افزایش موجودی",callback_data="money_menu_incraise")],
+                [InlineKeyboardButton("بازگشت",callback_data="back_to_menu")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            text = "عملیات نظر خود را انتخاب کنید"
+            await callback_query.message.edit_text(text, reply_markup=reply_markup)
+        except Exception as e:
+            logger.error(e)
+            await callback_query.message.edit_text("❌ خطا در نمایش منو!")
+
+    async def cart_to_cart_menu(self, client, callback_query: CallbackQuery):
+        keyboard = [
+            [InlineKeyboardButton("کارت به کارت",callback_data="cart_to_cart_menu_incraise")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        text = "عملیات نظر خود را انتخاب کنید"
+        await callback_query.message.edit_text(text, reply_markup=reply_markup)
+
 
     async def buy_new_service_menu(self, client, callback_query: CallbackQuery):
         try:
@@ -250,3 +315,156 @@ class PaymentHandler:
         except Exception as e:
             logger.error(f"Error in confirm_purchase: {e}")
             await callback_query.message.edit_text("❌ خطای سیستمی در پردازش خرید!")
+
+
+
+
+    async def cart_to_cart_menu(self, client, callback_query: CallbackQuery):
+        keyboard = [
+            [InlineKeyboardButton("افزایش موجودی", callback_data="start_balance_increase")],
+            [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        text = "لطفا گزینه مورد نظر را انتخاب کنید:"
+        await callback_query.message.edit_text(text, reply_markup=reply_markup)
+
+    async def start_balance_increase(self, client, callback_query: CallbackQuery):
+        user_id = callback_query.from_user.id
+        self.states[user_id] = {"state": PaymentStates.GET_AMOUNT}
+
+        text = (
+            "💰 لطفا مبلغ مورد نظر برای افزایش موجودی را وارد کنید:\n\n"
+            "⚠️ حداقل مبلغ: 50,000 تومان\n"
+            "⚠️ حداکثر مبلغ: 500,000 تومان\n\n"
+            "❌ برای لغو از دکمه زیر استفاده کنید"
+        )
+
+        keyboard = [[InlineKeyboardButton("❌ لغو عملیات", callback_data="cancel_operation")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await callback_query.message.edit_text(text, reply_markup=reply_markup)
+
+    async def get_amount(self, client, message: Message):
+        user_id = message.from_user.id
+        if user_id not in self.states or self.states[user_id]["state"] != PaymentStates.GET_AMOUNT:
+            return
+
+        try:
+            amount = int(message.text)
+            if amount < 50000:
+                await message.reply_text("❌ مبلغ وارد شده کمتر از حد مجاز است (50,000 تومان)")
+                return
+            if amount > 500000:
+                await message.reply_text("❌ مبلغ وارد شده بیشتر از حد مجاز است (500,000 تومان)")
+                return
+
+            self.states[user_id] = {
+                "state": PaymentStates.GET_RECEIPT,
+                "amount": amount
+            }
+
+            # اطلاعات کارت برای پرداخت
+            card_info = (
+                "💳 لطفا مبلغ به حساب زیر واریز کنید:\n\n"
+                "بانک: ملت\n"
+                "شماره کارت: 6037-9972-1234-5678\n"
+                "به نام: محمد احمدی\n\n"
+                "📸 سپس عکس رسید پرداختی خود را ارسال کنید"
+            )
+
+            keyboard = [[InlineKeyboardButton("❌ لغو عملیات", callback_data="cancel_operation")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await message.reply_text(card_info, reply_markup=reply_markup)
+
+        except ValueError:
+            await message.reply_text("❌ لطفا فقط عدد وارد کنید (مثال: 100000)")
+
+    async def get_receipt(self, client, message: Message):
+        user_id = message.from_user.id
+        if user_id not in self.states or self.states[user_id]["state"] != PaymentStates.GET_RECEIPT:
+            return
+
+        amount = self.states[user_id]["amount"]
+        user = message.from_user
+
+        # ارسال رسید به ادمین
+        admin_text = (
+            "📨 درخواست افزایش موجودی:\n\n"
+            f"👤 کاربر: {user.first_name} (@{user.username})\n"
+            f"🆔 ID: {user.id}\n"
+            f"💰 مبلغ: {amount:,} تومان\n\n"
+            "لطفا تایید یا رد کنید:"
+        )
+
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ تایید", callback_data=f"approve_balance_{user_id}_{amount}"),
+                InlineKeyboardButton("❌ رد", callback_data=f"reject_balance_{user_id}")
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # ارسال عکس و اطلاعات به ادمین
+        await client.send_photo(
+            Config.ADMIN_ID,
+            message.photo.file_id,
+            caption=admin_text,
+            reply_markup=reply_markup
+        )
+
+        # پاسخ به کاربر
+        await message.reply_text(
+            "✅ رسید شما با موفقیت ارسال شد. پس از تایید ادمین، موجودی شما افزایش خواهد یافت."
+        )
+
+        # پاکسازی حالت کاربر
+        del self.states[user_id]
+
+    async def cancel_operation(self, client, callback_query: CallbackQuery):
+        user_id = callback_query.from_user.id
+        if user_id in self.states:
+            del self.states[user_id]
+
+        await callback_query.message.edit_text("❌ عملیات لغو شد.")
+
+    async def approve_balance(self, client, callback_query: CallbackQuery):
+        # استخراج اطلاعات از callback_data
+        data = callback_query.data.split('_')
+        user_id = int(data[2])
+        amount = int(data[3])
+
+        # افزایش موجودی کاربر
+        db = VpnDatabase()
+        db.balance_increase(user_id, amount)
+        db.close()
+
+        # اطلاع به کاربر
+        await client.send_message(
+            user_id,
+            f"✅ موجودی حساب شما به مبلغ {amount:,} تومان افزایش یافت.\n\n"
+            f"💰 موجودی جدید: {db.get_balance(user_id):,} تومان"
+        )
+
+        # ویرایش پیام ادمین
+        await callback_query.message.edit_caption(
+            f"✅ موجودی کاربر افزایش یافت.\n💰 مبلغ: {amount:,} تومان"
+        )
+
+        await callback_query.answer("موجودی کاربر افزایش یافت")
+
+    async def reject_balance(self, client, callback_query: CallbackQuery):
+        data = callback_query.data.split('_')
+        user_id = int(data[2])
+
+        # ارسال پیام به کاربر
+        try:
+            await client.send_message(
+                user_id,
+                "❌ درخواست افزایش موجودی شما توسط ادمین رد شد."
+            )
+        except Exception as e:
+            logger.error(f"Error sending rejection message: {e}")
+
+        # ویرایش پیام ادمین
+        await callback_query.message.edit_caption("❌ درخواست افزایش موجودی رد شد.")
