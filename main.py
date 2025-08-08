@@ -5,7 +5,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from utils.config import Config
 from services.vpn_handler import VpnHandler
 from services.payment_handler import PaymentHandler
-from datetime import datetime
+
 from database.database_VPN import VpnDatabase
 # تنظیم مسیر پروژه
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +29,7 @@ async def start_handler(client: Client, message: Message):
     user_name = user.first_name
     user_last_name = user.last_name
     user_name_1 = user.username
-    joined_at = datetime.datetime.now()
+
     db = VpnDatabase()
     db.create_user_if_not_exists(
         user_id=user.id,
