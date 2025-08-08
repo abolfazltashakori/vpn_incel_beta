@@ -19,7 +19,6 @@ bot = Client(
     bot_token=Config.BOT_TOKEN
 )
 
-# ثبت هندلرها
 vpn_handler = VpnHandler(bot)
 payment_handler = PaymentHandler(bot)
 

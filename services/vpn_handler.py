@@ -3,7 +3,6 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from services.marzban_service import MarzbanService
 from database.database_VPN import VpnDatabase
 from utils.config import Config
-from main import *
 
 class VpnHandler:
     def __init__(self, bot):
@@ -12,22 +11,14 @@ class VpnHandler:
         self.register_handlers()
 
     def register_handlers(self):
-
+        # ثبت هندلر با استفاده از self.bot
         self.bot.add_handler(
             self.bot.on_callback_query(filters.regex("^test_vpn_menu$"))(self.handle_test_vpn)
         )
 
-
-    @staticmethod
-    @bot.on_callback_query(filters.regex("^test_vpn_menu$"))
-    async def test_vpn_handler(client, callback_query):
-        handler = VpnHandler.get_handler(client)
-        await handler.handle_test_vpn(callback_query)
-
     async def handle_test_vpn(self, client, callback_query):
         user = callback_query.from_user
         try:
-            # ایجاد کاربر در دیتابیس
             self.db.create_user_if_not_exists(
                 user.id,
                 user.first_name,
@@ -35,12 +26,10 @@ class VpnHandler:
                 user.username or ""
             )
 
-            # بررسی استفاده قبلی از سرویس تست
             if self.db.has_used_test_service(user.id):
-                await callback_query.answer("شما قبلاً از سرویس تست استفاده کرده‌اید!", show_alert=True)
+                await callback_query.answer("⚠️ شما قبلاً از سرویس تست استفاده کرده‌اید!", show_alert=True)
                 return
 
-            # ایجاد سرویس تست
             token = MarzbanService.get_admin_token()
             if not token:
                 raise Exception("خطا در اتصال به سرور")
@@ -53,20 +42,19 @@ class VpnHandler:
             if not service:
                 raise Exception("خطا در ایجاد سرویس")
 
-            # علامت‌گذاری استفاده از سرویس تست
             self.db.active_test_service(user.id, True)
 
             text = f"""
-            🎉 **سرویس تست فعال شد!**
+🎉 **سرویس تست فعال شد!**
 
-            📛 نام سرویس: `{service['username']}`
-            📦 حجم: 200 مگابایت
-            ⏳ اعتبار: 24 ساعت
-            🔗 لینک اتصال:
-            `{service['subscription_url'] or service['links'][0]}`
+📛 نام سرویس: `{service['username']}`
+📦 حجم: 200 مگابایت
+⏳ اعتبار: 24 ساعت
+🔗 لینک اتصال:
+`{service['subscription_url'] or service['links'][0]}`
 
-            ⚠️ توجه: این سرویس فقط برای تست اولیه می‌باشد
-            """
+⚠️ توجه: این سرویس فقط برای تست اولیه می‌باشد
+"""
             await callback_query.message.edit_text(text)
         except Exception as e:
             await callback_query.message.edit_text(f"❌ خطا: {str(e)}")
