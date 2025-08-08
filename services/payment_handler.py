@@ -448,28 +448,26 @@ class PaymentHandler:
         await callback_query.message.edit_text("❌ عملیات لغو شد.")
 
     async def approve_balance(self, client, callback_query: CallbackQuery):
-        # استخراج اطلاعات از callback_data
         data = callback_query.data.split('_')
         user_id = int(data[2])
         amount = int(data[3])
 
-        # افزایش موجودی کاربر
         db = VpnDatabase()
         db.balance_increase(user_id, amount)
+
+        # Get balance BEFORE closing connection
+        new_balance = db.get_balance(user_id)  # ✅ Get value while connection is open
         db.close()
 
-        # اطلاع به کاربر
         await client.send_message(
             user_id,
             f"✅ موجودی حساب شما به مبلغ {amount:,} تومان افزایش یافت.\n\n"
-            f"💰 موجودی جدید: {db.get_balance(user_id):,} تومان"
+            f"💰 موجودی جدید: {new_balance:,} تومان"  # Use stored value
         )
 
-        # ویرایش پیام ادمین
         await callback_query.message.edit_caption(
             f"✅ موجودی کاربر افزایش یافت.\n💰 مبلغ: {amount:,} تومان"
         )
-
         await callback_query.answer("موجودی کاربر افزایش یافت")
 
     async def reject_balance(self, client, callback_query: CallbackQuery):
