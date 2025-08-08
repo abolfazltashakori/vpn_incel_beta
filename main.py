@@ -5,7 +5,8 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from utils.config import Config
 from services.vpn_handler import VpnHandler
 from services.payment_handler import PaymentHandler
-
+from datetime import datetime
+from database.database_VPN import VpnDatabase
 # تنظیم مسیر پروژه
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
@@ -24,6 +25,20 @@ payment_handler = PaymentHandler(bot)
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
+    user = message.from_user
+    user_id = user.id
+    user_name = user.first_name
+    user_last_name = user.last_name
+    user_name_1 = user.username
+    joined_at = datetime.datetime.now()
+    db = VpnDatabase()
+    db.create_user_if_not_exists(
+        user_id=user.id,
+        first_name=user.first_name,
+        last_name=user.last_name or "",
+        username=user.username or ""
+    )
+
     keyboard = [
         [InlineKeyboardButton("دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
         [InlineKeyboardButton("خرید سرویس جدید", callback_data="buy_new_service_menu"),
@@ -35,7 +50,13 @@ async def start_handler(client: Client, message: Message):
          InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await message.reply_text(f"👋 {message.from_user.first_name} عزیز خوش آمدید!", reply_markup=reply_markup)
+    text = f"""
+    🌟 سلام {message.from_user.first_name} عزیز!
+
+    به سرویس VPN خوش آمدید!
+    لطفا یکی از گزینه‌های زیر را انتخاب کنید:
+    """
+    await message.reply_text(text, reply_markup=reply_markup)
 
 if __name__ == "__main__":
     print("Bot is running...")

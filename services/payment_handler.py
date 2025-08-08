@@ -5,8 +5,8 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQ
 from pyrogram.errors import BadRequest
 from services.marzban_service import MarzbanService
 from utils.config import Config
-from database.user_db import UserDatabase
-from database.vpn_db import VpnDatabase
+
+from database.database_VPN import VpnDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class PaymentHandler:
     def __init__(self, bot):
         self.bot = bot
-        self.user_db = UserDatabase()
+        self.user_db = VpnDatabase()
         self.vpn_db = VpnDatabase()
         self.package_details = Config.PACKAGE_DETAILS
         self.register_handlers()
@@ -219,13 +219,16 @@ class PaymentHandler:
                 volume = "نامحدود" if package["volume_gb"] == 0 else f"{package['volume_gb']} گیگابایت"
                 days = "مادام‌العمر" if package["days"] == 0 else f"{package['days']} روز"
 
-                text = (
-                    "✅ سرویس شما با موفقیت فعال شد!\n\n"
-                    f"🔖 نام سرویس: `{service['username']}`\n"
-                    f"📦 حجم: {volume}\n"
-                    f"⏳ مدت: {days}\n\n"
-                    f"🔗 لینک اتصال:\n`{service['subscription_url'] or service['links'][0]}`"
-                )
+                text = f"""
+                💳 **خرید شما ثبت شد!**
+
+                ✅ سرویس با موفقیت فعال شد
+                📝 شناسه سرویس: `{service['username']}`
+                🗓️ مدت اعتبار: {days}
+                📦 حجم ماهانه: {volume}
+                🔗 لینک اتصال: 
+                `{service['subscription_url'] or service['links'][0]}`
+                """
 
                 await callback_query.message.edit_text(text)
 

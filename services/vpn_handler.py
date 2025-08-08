@@ -1,9 +1,9 @@
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from services.marzban_service import MarzbanService
-from database.vpn_db import VpnDatabase
+from database.database_VPN import VpnDatabase
 from utils.config import Config
-
+from main import *
 
 class VpnHandler:
     def __init__(self, bot):
@@ -12,7 +12,11 @@ class VpnHandler:
         self.register_handlers()
 
     def register_handlers(self):
-        self.bot.add_handler(self.test_vpn_handler)
+
+        self.bot.add_handler(
+            self.bot.on_callback_query(filters.regex("^test_vpn_menu$"))(self.handle_test_vpn)
+        )
+
 
     @staticmethod
     @bot.on_callback_query(filters.regex("^test_vpn_menu$"))
@@ -20,7 +24,7 @@ class VpnHandler:
         handler = VpnHandler.get_handler(client)
         await handler.handle_test_vpn(callback_query)
 
-    async def handle_test_vpn(self, callback_query):
+    async def handle_test_vpn(self, client, callback_query):
         user = callback_query.from_user
         try:
             # ایجاد کاربر در دیتابیس
@@ -53,13 +57,16 @@ class VpnHandler:
             self.db.active_test_service(user.id, True)
 
             text = f"""
-✅ سرویس تست با موفقیت ایجاد شد!
-📛 نام سرویس: {service['username']}
-📦 حجم: 0.2 گیگابایت
-⏳ مدت اعتبار: 1 روز
-🔗 لینک اتصال:
-`{service['subscription_url'] or service['links'][0]}`
-"""
+            🎉 **سرویس تست فعال شد!**
+
+            📛 نام سرویس: `{service['username']}`
+            📦 حجم: 200 مگابایت
+            ⏳ اعتبار: 24 ساعت
+            🔗 لینک اتصال:
+            `{service['subscription_url'] or service['links'][0]}`
+
+            ⚠️ توجه: این سرویس فقط برای تست اولیه می‌باشد
+            """
             await callback_query.message.edit_text(text)
         except Exception as e:
             await callback_query.message.edit_text(f"❌ خطا: {str(e)}")
