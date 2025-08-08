@@ -76,7 +76,15 @@ class PaymentHandler:
         ))
         self.bot.add_handler(CallbackQueryHandler(
             self.cart_to_cart_menu,
+            filters.regex("^money_menu_incraise$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.cart_to_cart_menu,
             filters.regex("^cart_to_cart_menu_incraise$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.balance_increase_menu,
+            filters.regex("^balance_increase_menu$")
         ))
 
         # سیستم افزایش موجودی
@@ -105,11 +113,12 @@ class PaymentHandler:
             filters.regex(r"^reject_balance_(\d+)$")
         ))
 
+
     async def money_managment(self, client, callback_query: CallbackQuery):
         try:
             keyboard = [
-                [InlineKeyboardButton("افزایش موجودی",callback_data="money_menu_incraise")],
-                [InlineKeyboardButton("بازگشت",callback_data="back_to_menu")],
+                [InlineKeyboardButton("افزایش موجودی", callback_data="balance_increase_menu")],
+                [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             text = "عملیات نظر خود را انتخاب کنید"
@@ -118,14 +127,14 @@ class PaymentHandler:
             logger.error(e)
             await callback_query.message.edit_text("❌ خطا در نمایش منو!")
 
-    async def cart_to_cart_menu(self, client, callback_query: CallbackQuery):
+    async def balance_increase_menu(self, client, callback_query: CallbackQuery):
         keyboard = [
-            [InlineKeyboardButton("کارت به کارت",callback_data="cart_to_cart_menu_incraise")],
+            [InlineKeyboardButton("کارت به کارت", callback_data="start_balance_increase")],
+            [InlineKeyboardButton("بازگشت", callback_data="money_managment")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        text = "عملیات نظر خود را انتخاب کنید"
+        text = "برای افزایش موجودی از طریق کارت به کارت، گزینه زیر را انتخاب کنید:"
         await callback_query.message.edit_text(text, reply_markup=reply_markup)
-
 
     async def buy_new_service_menu(self, client, callback_query: CallbackQuery):
         try:
@@ -342,14 +351,7 @@ class PaymentHandler:
 
 
 
-    async def cart_to_cart_menu(self, client, callback_query: CallbackQuery):
-        keyboard = [
-            [InlineKeyboardButton("افزایش موجودی", callback_data="start_balance_increase")],
-            [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        text = "لطفا گزینه مورد نظر را انتخاب کنید:"
-        await callback_query.message.edit_text(text, reply_markup=reply_markup)
+
 
     async def start_balance_increase(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
