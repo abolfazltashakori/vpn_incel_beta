@@ -40,7 +40,7 @@ class MarzbanService:
             "proxies": {"vless": {}},
             "inbounds": {"vless": inbounds},
             "expire": int((datetime.now(timezone.utc) + timedelta(days=days)).timestamp()),
-            "data_limit": int(volume_gb * 1000 ** 3),
+            "data_limit": int(volume_gb * 1024 ** 3),
             "data_limit_reset_strategy": "no_reset"
         }
 

@@ -38,7 +38,14 @@ class VpnHandler:
             if not inbounds:
                 raise Exception("هیچ inbound فعالی یافت نشد")
 
-            service = MarzbanService.create_service(token, user.id, inbounds)
+            volume_gb = 200 / (1024)
+            service = MarzbanService.create_service(
+                token,
+                user.id,
+                inbounds,
+                volume_gb=volume_gb,  # مقدار تصحیح شده
+                days=1
+            )
             if not service:
                 raise Exception("خطا در ایجاد سرویس")
 
