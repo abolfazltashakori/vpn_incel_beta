@@ -143,7 +143,7 @@ async def back_to_menu(client: Client, query: CallbackQuery):
     به سرویس VPN خوش آمدید!
     لطفا یکی از گزینه‌های زیر را انتخاب کنید:
     """
-    await message.reply_text(text, reply_markup=reply_markup)
+    await message.edit_text(text, reply_markup=reply_markup)
 
 if __name__ == "__main__":
     print("Bot is running...")
