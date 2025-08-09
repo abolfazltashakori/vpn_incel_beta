@@ -215,12 +215,19 @@ class PaymentHandler:
                 return
 
             package = self.package_details[package_id]
-            volume = "نامحدود" if package["volume_gb"] == 0 else f"{package['volume_gb']} گیگابایت"
+
+            # تغییرات در این بخش
+            if package["volume_gb"] == 0:
+                volume_display = "نامحدود"
+            else:
+                # نمایش حجم به صورت عددی با فرمت مناسب
+                volume_display = f"{package['volume_gb']:,.0f} گیگابایت"
+
             days = "مادام‌العمر" if package["days"] == 0 else f"{package['days']} روز"
 
             text = (
                 "📦 جزئیات بسته انتخابی:\n\n"
-                f"• حجم: {volume:,.2f}گیگابایت"
+                f"• حجم: {volume_display}\n"  # استفاده از متغیر اصلاح شده
                 f"• مدت: {days}\n"
                 f"• قیمت: {package['price']:,} تومان\n\n"
                 "آیا از خرید این بسته اطمینان دارید؟"
@@ -307,7 +314,7 @@ class PaymentHandler:
                     raise Exception("خطا در ایجاد سرویس در پنل مدیریت")
 
                 # نمایش اطلاعات سرویس
-                volume = "نامحدود" if package["volume_gb"] == 0 else f"{package['volume_gb']} گیگابایت"
+                volume = "نامحدود" if package["volume_gb"] == 100 else f"{package['volume_gb']} گیگابایت"
                 days = "مادام‌العمر" if package["days"] == 0 else f"{package['days']} روز"
 
                 text = f"""
