@@ -4,7 +4,7 @@ from services.marzban_service import MarzbanService
 from database.database_VPN import VpnDatabase
 from utils.config import Config
 from utils.persian_tools import to_jalali
-from datetime import datetime
+from datetime import *
 class VpnHandler:
     def __init__(self, bot):
         self.bot = bot
@@ -23,6 +23,21 @@ class VpnHandler:
         self.bot.add_handler(
             self.bot.on_callback_query(filters.regex("^user_details$"))(self.show_user_account_info)
         )
+        self.bot.add_handler(
+            self.bot.on_callback_query(filters.regex("^my_service_menu$"))(self.show_user_services)
+        )
+
+        self.bot.add_handler(
+            self.bot.on_callback_query(filters.regex(r"^service_details_"))(self.show_service_details)
+        )
+
+        self.bot.add_handler(
+            self.bot.on_callback_query(filters.regex(r"^renew_service_"))(self.handle_renew_service)
+        )
+        self.bot.add_handler(
+            self.bot.on_callback_query(filters.regex(r"^confirm_renew_"))(self.confirm_renew_service)
+        )
+
 
     async def show_user_account_info(self, client, callback_query):
         user_id = callback_query.from_user.id
@@ -108,3 +123,149 @@ class VpnHandler:
             await callback_query.message.edit_text(text)
         except Exception as e:
             await callback_query.message.edit_text(f"❌ خطا: {str(e)}")
+
+
+    async def show_user_services(self, client, callback_query):
+        user_id = callback_query.from_user.id
+        services = self.db.get_user_services(user_id)
+
+        if not services:
+            await callback_query.message.edit_text("🛑 شما هیچ سرویس فعالی ندارید!")
+            return
+
+        keyboard = []
+        for service in services:
+            service_name = service[2]  # service_username
+            btn = InlineKeyboardButton(
+                text=f"سرویس {service_name}",
+                callback_data=f"service_details_{service_name}"
+            )
+            keyboard.append([btn])
+
+        keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_menu")])
+
+        text = "🔻 سرویس های فعال شما:\nلطفا یک سرویس را انتخاب کنید"
+        await callback_query.message.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+    async def show_service_details(self, client, callback_query):
+        service_username = callback_query.data.split("_")[2]
+        service = self.db.get_service_by_username(service_username)
+
+        if not service:
+            await callback_query.answer("سرویس یافت نشد!")
+            return
+
+        # محاسبه زمان باقیمانده
+        expire_date = datetime.fromtimestamp(service[5])
+        remaining_days = (expire_date - datetime.now()).days
+
+        text = f"""
+    📦 مشخصات سرویس:
+    ┌ شناسه سرویس: `{service[2]}`
+    ├ حجم کل: {service[4]} گیگابایت
+    ├ زمان باقیمانده: {remaining_days} روز
+    └ تاریخ انقضا: {expire_date.strftime('%Y-%m-%d %H:%M')}
+    """
+        keyboard = [
+            [InlineKeyboardButton("🔄 تمدید سرویس", callback_data=f"renew_service_{service[2]}")],
+            [InlineKeyboardButton("🔙 بازگشت", callback_data="my_service_menu")]
+        ]
+
+        await callback_query.message.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+    async def handle_renew_service(self, client, callback_query):
+        service_username = callback_query.data.split("_")[2]
+        service = self.db.get_service_by_username(service_username)
+        user_id = callback_query.from_user.id
+
+        if not service:
+            await callback_query.answer("سرویس یافت نشد!")
+            return
+
+        package_id = service[3]
+        package_details = Config.PACKAGE_DETAILS.get(package_id)
+
+        if not package_details:
+            await callback_query.message.edit_text("❌ اطلاعات بسته سرویس نامعتبر است!")
+            return
+
+        # محاسبه تاریخ انقضای جدید (تمدید 30 روزه)
+        new_expire_date = int((datetime.now() + timedelta(days=30)).timestamp())
+
+        text = f"""
+    ⚠️ آیا می‌خواهید این سرویس را تمدید کنید؟
+    ├ هزینه تمدید: {package_details['price']:,} تومان
+    └ مدت تمدید: 30 روز
+    """
+        keyboard = [
+            [InlineKeyboardButton("✅ بله، تمدید کن", callback_data=f"confirm_renew_{service_username}")],
+            [InlineKeyboardButton("❌ خیر، بازگشت", callback_data=f"service_details_{service_username}")]
+        ]
+
+        await callback_query.message.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+    # در main.py این هندلر را اضافه کنید
+
+    async def confirm_renew_service(self,client, callback_query):
+        service_username = callback_query.data.split("_")[2]
+        db = VpnDatabase()
+        service = db.get_service_by_username(service_username)
+        user_id = callback_query.from_user.id
+
+        if not service:
+            await callback_query.answer("سرویس یافت نشد!")
+            return
+
+        package_id = service[3]
+        package_details = Config.PACKAGE_DETAILS.get(package_id)
+
+        if not package_details:
+            await callback_query.message.edit_text("❌ اطلاعات بسته سرویس نامعتبر است!")
+            return
+
+        # بررسی موجودی کاربر
+        balance = db.get_balance(user_id)
+        if balance < package_details['price']:
+            await callback_query.message.edit_text(
+                "❌ موجودی کافی نیست!\n"
+                f"موجودی فعلی: {balance:,} تومان\n"
+                f"مبلغ مورد نیاز: {package_details['price']:,} تومان"
+            )
+            return
+
+        # کسر هزینه و ریست سرویس
+        try:
+            db.balance_decrease(user_id, package_details['price'])
+            new_expire_date = int((datetime.now() + timedelta(days=30)).timestamp())
+
+            # ریست سرویس در Marzban
+            token = MarzbanService.get_admin_token()
+            if token:
+                MarzbanService.reset_service(
+                    token,
+                    service_username,
+                    new_expire_date
+                )
+
+            # به‌روزرسانی دیتابیس
+            db.reset_service(service_username, new_expire_date)
+
+            await callback_query.message.edit_text(
+                "✅ سرویس با موفقیت تمدید و ریست شد!\n"
+                f"📆 انقضای جدید: {datetime.fromtimestamp(new_expire_date).strftime('%Y-%m-%d %H:%M')}"
+            )
+        except Exception as e:
+            #logger.error(f"Error renewing service: {e}")
+            await callback_query.message.edit_text("❌ خطا در تمدید سرویس!")

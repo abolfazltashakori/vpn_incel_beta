@@ -10,7 +10,7 @@ from pyrogram.types import (
 from pyrogram.errors import BadRequest
 from services.marzban_service import MarzbanService
 from utils.config import Config
-
+from datetime import *
 from database.database_VPN import VpnDatabase
 
 logger = logging.getLogger(__name__)
@@ -332,6 +332,15 @@ class PaymentHandler:
                 """
                 self.user_db.increment_purchase_count(user_id)
                 self.user_db.increment_invoice_count(user_id)
+                expire_date = int((datetime.now(timezone.utc) + timedelta(days=package["days"])).timestamp())
+                self.vpn_db.add_user_service(
+                    user_id,
+                    service["username"],
+                    package_id,
+                    package["volume_gb"],
+                    expire_date
+                )
+
                 await callback_query.message.edit_text(text)
 
                 # ارسال پیام به ادمین

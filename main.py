@@ -5,7 +5,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, 
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from datetime import datetime
 from database.database_VPN import VpnDatabase
-from services.vpn_handler import VpnHandler
+from services.vpn_handler import *
 from services.payment_handler import PaymentHandler
 from services.admin_menu import AdminMenu
 from utils.config import Config
@@ -177,6 +177,8 @@ async def price_info(client: Client, query: CallbackQuery):
     
     """
     await query.message.edit_text(text, reply_markup=reply_markup)
+
+
 if __name__ == "__main__":
     print("Bot is running...")
     bot.run()

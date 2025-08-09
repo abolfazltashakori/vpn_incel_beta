@@ -35,6 +35,17 @@ class VpnDatabase:
                 invoice_count INTEGER DEFAULT 0,
                 referral_count INTEGER DEFAULT 0
             )''')
+            cur.execute('''CREATE TABLE IF NOT EXISTS user_services (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER NOT NULL,
+                service_username TEXT NOT NULL,
+                package_id TEXT NOT NULL,
+                volume_gb REAL NOT NULL,
+                expire_date INTEGER NOT NULL,
+                purchase_date INTEGER NOT NULL,
+                FOREIGN KEY (telegram_id) REFERENCES users_vpn (telegram_id)
+            )''')
+
             self.conn.commit()
 
 
@@ -114,6 +125,32 @@ class VpnDatabase:
     def increment_referral_count(self, telegram_id):
         cur = self.conn.cursor()
         cur.execute('UPDATE users_vpn SET referral_count = referral_count + 1 WHERE telegram_id = ?', (telegram_id,))
+        self.conn.commit()
+
+    def add_user_service(self, telegram_id, service_username, package_id, volume_gb, expire_date):
+        cur = self.conn.cursor()
+        purchase_date = int(datetime.now().timestamp())
+        cur.execute('''INSERT INTO user_services (
+            telegram_id, service_username, package_id, volume_gb, expire_date, purchase_date
+        ) VALUES (?,?,?,?,?,?)''', (
+            telegram_id, service_username, package_id, volume_gb, expire_date, purchase_date
+        ))
+        self.conn.commit()
+
+    def get_user_services(self, telegram_id):
+        cur = self.conn.cursor()
+        cur.execute('SELECT * FROM user_services WHERE telegram_id = ?', (telegram_id,))
+        return cur.fetchall()
+
+    def get_service_by_username(self, service_username):
+        cur = self.conn.cursor()
+        cur.execute('SELECT * FROM user_services WHERE service_username = ?', (service_username,))
+        return cur.fetchone()
+
+    def reset_service(self, service_username, new_expire_date):
+        cur = self.conn.cursor()
+        cur.execute('UPDATE user_services SET expire_date = ? WHERE service_username = ?',
+                    (new_expire_date, service_username))
         self.conn.commit()
 
     def close(self):

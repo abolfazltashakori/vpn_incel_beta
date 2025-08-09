@@ -52,3 +52,19 @@ class MarzbanService:
                 "links": response.json().get("links", [])
             }
         return None
+
+    @staticmethod
+    def reset_service(access_token, service_username, new_expire_date):
+        url = f"{Config.BASE_URL}/api/user/{service_username}"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "expire": new_expire_date,
+            "data_limit_reset_strategy": "reset_set"  # ریست حجم مصرفی
+        }
+
+        response = requests.put(url, headers=headers, json=payload)
+        return response.status_code == 200
