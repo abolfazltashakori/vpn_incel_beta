@@ -7,7 +7,9 @@ from services.vpn_handler import VpnHandler
 from services.payment_handler import PaymentHandler
 from datetime import datetime
 from database.database_VPN import VpnDatabase
-# تنظیم مسیر پروژه
+from services.admin_menu import AdminMenu
+
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
 
@@ -21,6 +23,7 @@ bot = Client(
 
 vpn_handler = VpnHandler(bot)
 payment_handler = PaymentHandler(bot)
+admin_menu = AdminMenu(bot)
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
@@ -69,5 +72,6 @@ async def start_handler(client: Client, message: Message):
     await message.reply_text(text, reply_markup=reply_markup)
 
 if __name__ == "__main__":
+
     print("Bot is running...")
     bot.run()

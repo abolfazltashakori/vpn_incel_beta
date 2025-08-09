@@ -327,7 +327,8 @@ class PaymentHandler:
                 🔗 لینک اتصال: 
                 `{service['subscription_url'] or service['links'][0]}`
                 """
-
+                self.user_db.increment_purchase_count(user_id)
+                self.user_db.increment_invoice_count(user_id)
                 await callback_query.message.edit_text(text)
 
                 # ارسال پیام به ادمین

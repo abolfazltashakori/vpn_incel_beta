@@ -21,8 +21,15 @@ class VpnDatabase:
             phone_number TEXT,
             ban BOOLEAN DEFAULT FALSE,
             join_date TEXT,
-            test_service BOOLEAN DEFAULT FALSE
+            test_service BOOLEAN DEFAULT FALSE,
+            referral_code TEXT,  # کد معرف
+            user_group TEXT DEFAULT 'عادی',  
+            purchase_count INTEGER DEFAULT 0,  
+            invoice_count INTEGER DEFAULT 0,  
+            referral_count INTEGER DEFAULT 0  
             )''')
+
+
         self.conn.commit()
 
     def create_user_if_not_exists(self, telegram_id, first_name, last_name, username, join_date=None):
@@ -72,6 +79,29 @@ class VpnDatabase:
             new_balance = result[0] + balance  # محاسبه موجودی جدید
             cur.execute('UPDATE users_vpn SET balance = ? WHERE telegram_id = ?', (new_balance, telegram_id))
             self.conn.commit()
+
+    def get_user_info(self, telegram_id):
+        cur = self.conn.cursor()
+        cur.execute('''SELECT telegram_id, first_name, last_name, referral_code, phone_number, 
+                    join_date, balance, purchase_count, invoice_count, referral_count, user_group 
+                    FROM users_vpn 
+                    WHERE telegram_id = ?''', (telegram_id,))
+        return cur.fetchone()
+
+    def increment_purchase_count(self, telegram_id):
+        cur = self.conn.cursor()
+        cur.execute('UPDATE users_vpn SET purchase_count = purchase_count + 1 WHERE telegram_id = ?', (telegram_id,))
+        self.conn.commit()
+
+    def increment_invoice_count(self, telegram_id):
+        cur = self.conn.cursor()
+        cur.execute('UPDATE users_vpn SET invoice_count = invoice_count + 1 WHERE telegram_id = ?', (telegram_id,))
+        self.conn.commit()
+
+    def increment_referral_count(self, telegram_id):
+        cur = self.conn.cursor()
+        cur.execute('UPDATE users_vpn SET referral_count = referral_count + 1 WHERE telegram_id = ?', (telegram_id,))
+        self.conn.commit()
 
     def close(self):
         self.conn.close()
