@@ -145,6 +145,39 @@ async def back_to_menu(client: Client, query: CallbackQuery):
     """
     await message.edit_text(text, reply_markup=reply_markup)
 
+@bot.on_callback_query(filters.regex("^price_info"))
+async def price_info(client: Client, query: CallbackQuery):
+    user_id = query.from_user.id
+    keyboard = [
+        [InlineKeyboardButton("بازگشت",callback_data="back_to_menu")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    text = """
+    🔺 بسته‌های عادی
+🔶 20 گیگ | کاربر نامحدود | 1 ماه : 50T
+🔷 50 گیگ | کاربر نامحدود | 1 ماه : 110T
+🔶 100 گیگ | کاربر نامحدود | 1 ماه : 190T
+
+🔺 بسته‌های ویژه (نامحدود)
+🔸 100 گیگ | 1 ماه : 95T
+🔹 100 گیگ | 1 ماه : 145T
+🔸 100 گیگ | 2 ماه : 185T
+🔹 100 گیگ | 2 ماه : 240T
+
+🔺 بسته‌های لایف‌تایم (بدون محدودیت زمان)
+✅ بدون محدودیت کاربر و زمان
+🔶 10 گیگ : 35T
+🔷 20 گیگ : 60T
+🔶 50 گیگ : 160T
+🔷 100 گیگ : 360T
+
+🔺 بسته‌های بلندمدت
+🔶 50 گیگ | کاربر نامحدود | 2 ماه : 135T
+🔷 100 گیگ | کاربر نامحدود | 2 ماه : 260T
+🔶 150 گیگ | کاربر نامحدود | 2 ماه : 375T
+    
+    """
+    await query.message.edit_text(text, reply_markup=reply_markup)
 if __name__ == "__main__":
     print("Bot is running...")
     bot.run()
