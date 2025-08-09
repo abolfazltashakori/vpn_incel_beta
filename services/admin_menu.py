@@ -35,10 +35,9 @@ class AdminMenu:
             filters.regex("^admin_menu_user_detail$")
         ))
 
-        # هندلر دریافت آیدی کاربر
         self.bot.add_handler(MessageHandler(
             self.handle_user_id_input,
-            filters.private & filters.text & ~filters.command
+            filters.private & filters.text & ~filters.command()
         ))
 
         # هندلر گزینه "آمار خرید"
