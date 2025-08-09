@@ -1,9 +1,8 @@
 import sqlite3
 from datetime import datetime
 
-
 class VpnDatabase:
-    DB_NAME = 'VPN_beta.db'
+    DB_NAME = 'VPN1_beta.db'
 
     def __init__(self):
         self.conn = sqlite3.connect(self.DB_NAME)
@@ -22,12 +21,14 @@ class VpnDatabase:
             ban BOOLEAN DEFAULT FALSE,
             join_date TEXT,
             test_service BOOLEAN DEFAULT FALSE,
-            referral_code TEXT,  # کد معرف
-            user_group TEXT DEFAULT 'عادی',  
-            purchase_count INTEGER DEFAULT 0,  
-            invoice_count INTEGER DEFAULT 0,  
-            referral_count INTEGER DEFAULT 0  
+            referral_code TEXT,  -- کد معرف
+            user_group TEXT DEFAULT 'عادی',
+            purchase_count INTEGER DEFAULT 0,
+            invoice_count INTEGER DEFAULT 0,
+            referral_count INTEGER DEFAULT 0
             )''')
+
+        self.conn.commit()
 
 
         self.conn.commit()
