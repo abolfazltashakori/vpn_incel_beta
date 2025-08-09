@@ -1,7 +1,7 @@
 import sys
 import os
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from datetime import datetime
 from database.database_VPN import VpnDatabase
@@ -106,6 +106,10 @@ async def start_handler(client: Client, message: Message):
 """
     await message.reply_text(text, reply_markup=reply_markup)
 
+
+@bot.on_callback_query(filters.regex("^back_to_menu"))
+async def back_to_menu(client: Client, query: CallbackQuery):
+    await start_handler(client, query)
 
 if __name__ == "__main__":
     print("Bot is running...")
