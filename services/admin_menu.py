@@ -20,6 +20,8 @@ class AdminMenu:
         self.bot = bot
         self.db = VpnDatabase()
         self.states = {}  # ذخیره وضعیت هر کاربر
+
+    def register(self):
         self.register_handlers()
 
     def register_handlers(self):

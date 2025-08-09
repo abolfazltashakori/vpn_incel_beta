@@ -25,9 +25,11 @@ class PaymentHandler:
         self.user_db = VpnDatabase()
         self.vpn_db = VpnDatabase()
         self.package_details = Config.PACKAGE_DETAILS
-        self.register_handlers()
+
         self.states = {}
 
+    def register(self):
+        self.register_handlers()
     def register_handlers(self):
         # دسته‌بندی‌های اصلی
         self.bot.add_handler(CallbackQueryHandler(
