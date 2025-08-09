@@ -4,7 +4,7 @@ from services.marzban_service import MarzbanService
 from database.database_VPN import VpnDatabase
 from utils.config import Config
 from utils.persian_tools import to_jalali
-
+from datetime import datetime
 class VpnHandler:
     def __init__(self, bot):
         self.bot = bot
@@ -18,7 +18,7 @@ class VpnHandler:
         )
 
         self.bot.add_handler(
-            self.bot.on_callback_query(filters.regex("^user_details$"))(self.show_user_account_info())
+            self.bot.on_callback_query(filters.regex("^user_details$"))(self.show_user_account_info)
         )
 
     async def show_user_account_info(self, client, callback_query):
