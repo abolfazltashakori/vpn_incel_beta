@@ -37,7 +37,7 @@ class AdminMenu:
 
         self.bot.add_handler(MessageHandler(
             self.handle_user_id_input,
-            filters.private & filters.text & ~filters.command
+            filters.private & filters.text
         ))
 
         # هندلر گزینه "آمار خرید"
