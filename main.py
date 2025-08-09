@@ -24,7 +24,16 @@ bot = Client(
 
 # متغیر برای ذخیره هندلرها
 handlers_initialized = False
+database_connections = []
 
+def close_all_db_connections():
+    """بستن تمام اتصالات دیتابیس هنگام خروج"""
+    for db in database_connections:
+        if hasattr(db, 'close'):
+            db.close()
+    print("تمامی اتصالات دیتابیس بسته شدند")
+
+atexit.register(close_all_db_connections)
 
 async def initialize_handlers():
     """تابع برای مقداردهی اولیه هندلرها"""

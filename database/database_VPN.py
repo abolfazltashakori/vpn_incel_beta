@@ -1,37 +1,49 @@
 import sqlite3
 from datetime import datetime
+import threading
+
 
 class VpnDatabase:
     DB_NAME = 'VPN1_beta.db'
+    _lock = threading.Lock()  # برای مدیریت دسترسی thread-safe
 
     def __init__(self):
-        self.conn = sqlite3.connect(self.DB_NAME)
+        self.conn = self._create_connection()
         self.create_tables()
 
+    def _create_connection(self):
+        """ایجاد اتصال جدید به دیتابیس"""
+        return sqlite3.connect(self.DB_NAME)
+
     def create_tables(self):
-        cur = self.conn.cursor()
-        cur.execute('''CREATE TABLE IF NOT EXISTS users_vpn (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            telegram_id TEXT,
-            first_name TEXT,
-            last_name TEXT,
-            username TEXT,
-            balance INTEGER DEFAULT 0,
-            phone_number TEXT,
-            ban BOOLEAN DEFAULT FALSE,
-            join_date TEXT,
-            test_service BOOLEAN DEFAULT FALSE,
-            referral_code TEXT,  -- کد معرف
-            user_group TEXT DEFAULT 'عادی',
-            purchase_count INTEGER DEFAULT 0,
-            invoice_count INTEGER DEFAULT 0,
-            referral_count INTEGER DEFAULT 0
+        with self._lock:
+            cur = self.conn.cursor()
+            cur.execute('''CREATE TABLE IF NOT EXISTS users_vpn (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id TEXT,
+                first_name TEXT,
+                last_name TEXT,
+                username TEXT,
+                balance INTEGER DEFAULT 0,
+                phone_number TEXT,
+                ban BOOLEAN DEFAULT FALSE,
+                join_date TEXT,
+                test_service BOOLEAN DEFAULT FALSE,
+                referral_code TEXT,
+                user_group TEXT DEFAULT 'عادی',
+                purchase_count INTEGER DEFAULT 0,
+                invoice_count INTEGER DEFAULT 0,
+                referral_count INTEGER DEFAULT 0
             )''')
+            self.conn.commit()
 
-        self.conn.commit()
 
 
-        self.conn.commit()
+    def close(self):
+
+        if self.conn:
+            self.conn.close()
+            self.conn = None
 
     def create_user_if_not_exists(self, telegram_id, first_name, last_name, username, join_date=None):
         cur = self.conn.cursor()

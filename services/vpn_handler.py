@@ -108,5 +108,3 @@ class VpnHandler:
             await callback_query.message.edit_text(text)
         except Exception as e:
             await callback_query.message.edit_text(f"❌ خطا: {str(e)}")
-        finally:
-            self.db.close()

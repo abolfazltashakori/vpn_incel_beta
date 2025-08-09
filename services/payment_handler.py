@@ -467,7 +467,7 @@ class PaymentHandler:
 
         # Get balance BEFORE closing connection
         new_balance = db.get_balance(user_id)  # ✅ Get value while connection is open
-        db.close()
+
 
         await client.send_message(
             user_id,
