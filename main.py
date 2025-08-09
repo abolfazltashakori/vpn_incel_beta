@@ -21,12 +21,18 @@ bot = Client(
     bot_token=Config.BOT_TOKEN
 )
 
-vpn_handler = VpnHandler(bot)
-payment_handler = PaymentHandler(bot)
-admin_menu = AdminMenu(bot)
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
+    vpn_handler = VpnHandler(bot)
+    payment_handler = PaymentHandler(bot)
+    admin_menu = AdminMenu(bot)
+
+    vpn_handler.register()
+    payment_handler.register()
+    admin_menu.register()
+
+
     user = message.from_user
     user_id = message.from_user.id
     admin_id = 5381391685
@@ -72,6 +78,5 @@ async def start_handler(client: Client, message: Message):
     await message.reply_text(text, reply_markup=reply_markup)
 
 if __name__ == "__main__":
-
     print("Bot is running...")
     bot.run()

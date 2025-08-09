@@ -9,6 +9,9 @@ class VpnHandler:
     def __init__(self, bot):
         self.bot = bot
         self.db = VpnDatabase()
+
+
+    def register(self):
         self.register_handlers()
 
     def register_handlers(self):
