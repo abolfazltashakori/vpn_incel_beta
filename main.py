@@ -109,7 +109,8 @@ async def start_handler(client: Client, message: Message):
 
 @bot.on_callback_query(filters.regex("^back_to_menu"))
 async def back_to_menu(client: Client, query: CallbackQuery):
-    await start_handler(client, query)
+    """Handle back to menu callback"""
+    await start_handler(client, query, query.from_user)
 
 if __name__ == "__main__":
     print("Bot is running...")
