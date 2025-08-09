@@ -33,7 +33,7 @@ def close_all_db_connections():
             db.close()
     print("تمامی اتصالات دیتابیس بسته شدند")
 
-atexit.register(close_all_db_connections)
+#atexit.register(close_all_db_connections)
 
 async def initialize_handlers():
     """تابع برای مقداردهی اولیه هندلرها"""
