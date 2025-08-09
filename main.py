@@ -145,6 +145,16 @@ async def back_to_menu(client: Client, query: CallbackQuery):
     """
     await message.edit_text(text, reply_markup=reply_markup)
 
+@bot.on_callback_query(filters.regex("^support"))
+async def support(client: Client, query: CallbackQuery):
+    user_id = query.from_user.id
+    keyboard = [
+        [InlineKeyboardButton("بازگشت",callback_data="back_to_menu")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    text = "در صورت بروز هر گونه مشکل با پشتیبان در تماس باشید  https://t.me/Incel_support"
+    await query.message.edit_text(text, reply_markup=reply_markup)
+
 @bot.on_callback_query(filters.regex("^price_info"))
 async def price_info(client: Client, query: CallbackQuery):
     user_id = query.from_user.id

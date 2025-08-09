@@ -7,9 +7,11 @@ from pyrogram.types import (
     CallbackQuery,
     Message  # اضافه شده
 )
+
 from pyrogram.errors import BadRequest
 from services.marzban_service import MarzbanService
 from utils.config import Config
+from utils.persian_tools import *
 from datetime import *
 from database.database_VPN import VpnDatabase
 
@@ -23,7 +25,7 @@ class PaymentHandler:
     def __init__(self, bot):
         self.bot = bot
         self.user_db = VpnDatabase()
-        self.vpn_db = VpnDatabase()
+        self.db = VpnDatabase()
         self.package_details = Config.PACKAGE_DETAILS
 
         self.states = {}
@@ -117,8 +119,36 @@ class PaymentHandler:
                 [InlineKeyboardButton("افزایش موجودی", callback_data="balance_increase_menu")],
                 [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
             ]
+
+            user_id = callback_query.from_user.id
+            user_info = self.db.get_user_info(user_id)
+
+            if not user_info:
+                await callback_query.answer("❌ اطلاعات کاربر یافت نشد!")
+                return
+
+            # تبدیل تاریخ به شمسی
+            join_date = to_jalali(user_info[5])
+            current_date = to_jalali(datetime.now())
+
+            text = f"""
+                🗂 اطلاعات حساب کاربری شما :
+
+                🪪 شناسه کاربری: {user_info[0]}
+                👤 نام: {user_info[1]} {user_info[2] or ''}
+                👨‍👩‍👦 کد معرف شما : {user_info[3] or 'ندارد'}
+                📱 شماره تماس : {user_info[4] or '🔴 ارسال نشده است 🔴'}
+                ⌚️ زمان ثبت نام : {join_date}
+                💰 موجودی: {user_info[6]:,} تومان
+                🛒 تعداد سرویس های خریداری شده : {user_info[7]} عدد
+                📑 تعداد فاکتور های پرداخت شده : {user_info[8]} عدد
+                🤝 تعداد زیر مجموعه های شما : {user_info[9]} نفر
+                🔖 گروه کاربری : {user_info[10]}
+
+                📆 {current_date} → ⏰ {datetime.now().strftime('%H:%M:%S')}
+                """
             reply_markup = InlineKeyboardMarkup(keyboard)
-            text = "عملیات نظر خود را انتخاب کنید"
+
             await callback_query.message.edit_text(text, reply_markup=reply_markup)
         except Exception as e:
             logger.error(e)
