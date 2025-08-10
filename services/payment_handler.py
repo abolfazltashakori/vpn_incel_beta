@@ -170,6 +170,7 @@ class PaymentHandler:
                 [InlineKeyboardButton("بسته های لایف تایم", callback_data="lifetime")],
                 [InlineKeyboardButton("بسته های بلند مدت", callback_data="longtime")],
                 [InlineKeyboardButton("بسته های نامحدود", callback_data="unlimited")],
+                [InlineKeyboardButton("بازگشت",callback_data="back_to_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             text = "سرویس مورد نظر خود را انتخاب کنید"

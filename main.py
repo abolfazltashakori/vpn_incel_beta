@@ -1,7 +1,7 @@
 import sys
 import os
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery , KeyboardButton
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, KeyboardButton , ReplyKeyboardMarkup
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from datetime import datetime
 from database.database_VPN import VpnDatabase
@@ -26,6 +26,7 @@ bot = Client(
 handlers_initialized = False
 database_connections = []
 
+
 def close_all_db_connections():
     """بستن تمام اتصالات دیتابیس هنگام خروج"""
     for db in database_connections:
@@ -33,7 +34,8 @@ def close_all_db_connections():
             db.close()
     print("تمامی اتصالات دیتابیس بسته شدند")
 
-#atexit.register(close_all_db_connections)
+
+# atexit.register(close_all_db_connections)
 
 async def initialize_handlers():
     """تابع برای مقداردهی اولیه هندلرها"""
@@ -84,8 +86,7 @@ async def start_handler(client: Client, message: Message):
             [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
              InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
             [InlineKeyboardButton("بخش ادمین", callback_data="admin_menu")],
-            [KeyboardButton("خانه"),]
-            ]
+        ]
     else:
         keyboard = [
             [InlineKeyboardButton("دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
@@ -96,8 +97,17 @@ async def start_handler(client: Client, message: Message):
             [InlineKeyboardButton("آموزش اتصال", callback_data="connection_info")],
             [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
              InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
-            [KeyboardButton("خانه"), ]
         ]
+    reply_keyboard = ReplyKeyboardMarkup(
+        [[KeyboardButton("خانه")]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+    await message.reply_text(
+        "از دکمه های زیر استفاده کنید:",
+        reply_markup=reply_keyboard  # کیبورد معمولی
+    )
+
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = f"""
@@ -108,9 +118,11 @@ async def start_handler(client: Client, message: Message):
 """
     await message.reply_text(text, reply_markup=reply_markup)
 
+
 @bot.on_message(filters.text & filters.regex("^خانه$"))
 async def menu_handler(client: Client, message: Message):
     await start_handler(client, message)
+
 
 @bot.on_callback_query(filters.regex("^back_to_menu"))
 async def back_to_menu(client: Client, query: CallbackQuery):
@@ -150,26 +162,28 @@ async def back_to_menu(client: Client, query: CallbackQuery):
     """
     await message.edit_text(text, reply_markup=reply_markup)
 
+
 @bot.on_callback_query(filters.regex("^support"))
 async def support(client: Client, query: CallbackQuery):
     user_id = query.from_user.id
     keyboard = [
-        [InlineKeyboardButton("بازگشت",callback_data="back_to_menu")],
+        [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = "در صورت بروز هر گونه مشکل با پشتیبان در تماس باشید  https://t.me/Incel_support"
     await query.message.edit_text(text, reply_markup=reply_markup)
 
+
 @bot.on_callback_query(filters.regex("^price_info"))
 async def price_info(client: Client, query: CallbackQuery):
     user_id = query.from_user.id
     keyboard = [
-        [InlineKeyboardButton("بازگشت",callback_data="back_to_menu")],
+        [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = """
     🔺 بسته‌های عادی
-    
+
 🔶 20 گیگ | کاربر نامحدود | 1 ماه : 50T
 🔷 50 گیگ | کاربر نامحدود | 1 ماه : 110T
 🔶 100 گیگ | کاربر نامحدود | 1 ماه : 190T
@@ -189,7 +203,7 @@ async def price_info(client: Client, query: CallbackQuery):
 🔶 50 گیگ | کاربر نامحدود | 2 ماه : 135T
 🔷 100 گیگ | کاربر نامحدود | 2 ماه : 260T
 🔶 150 گیگ | کاربر نامحدود | 2 ماه : 375T
-    
+
     """
     await query.message.edit_text(text, reply_markup=reply_markup)
 
