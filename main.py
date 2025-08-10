@@ -1,7 +1,8 @@
 import sys
 import os
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, KeyboardButton , ReplyKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, KeyboardButton, \
+    ReplyKeyboardMarkup
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from datetime import datetime
 from database.database_VPN import VpnDatabase
@@ -22,43 +23,19 @@ bot = Client(
     bot_token=Config.BOT_TOKEN
 )
 
-# متغیر برای ذخیره هندلرها
-handlers_initialized = False
-database_connections = []
+# ایجاد و ثبت هندلرها هنگام راه‌اندازی ربات
+vpn_handler = VpnHandler(bot)
+payment_handler = PaymentHandler(bot)
+admin_menu = AdminMenu(bot)
 
-
-def close_all_db_connections():
-    """بستن تمام اتصالات دیتابیس هنگام خروج"""
-    for db in database_connections:
-        if hasattr(db, 'close'):
-            db.close()
-    print("تمامی اتصالات دیتابیس بسته شدند")
-
-
-# atexit.register(close_all_db_connections)
-
-async def initialize_handlers():
-    """تابع برای مقداردهی اولیه هندلرها"""
-    global handlers_initialized
-    if not handlers_initialized:
-        # ایجاد نمونه‌های هندلر
-        vpn_handler = VpnHandler(bot)
-        payment_handler = PaymentHandler(bot)
-        admin_menu = AdminMenu(bot)
-
-        # ثبت هندلرها
-        vpn_handler.register_handlers()
-        payment_handler.register_handlers()
-        admin_menu.register_handlers()
-
-        handlers_initialized = True
+# ثبت همه هندلرها
+vpn_handler.register_handlers()
+payment_handler.register_handlers()
+admin_menu.register_handlers()
 
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
-    # مقداردهی اولیه هندلرها در اولین اجرای start
-    await initialize_handlers()
-
     user = message.from_user
     user_id = user.id
     admin_id = 5381391685  # آیدی ادمین
@@ -98,16 +75,17 @@ async def start_handler(client: Client, message: Message):
             [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
              InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
         ]
+
     reply_keyboard = ReplyKeyboardMarkup(
         [[KeyboardButton("خانه")]],
         resize_keyboard=True,
         one_time_keyboard=True
     )
+
     await message.reply_text(
         "از دکمه های زیر استفاده کنید:",
-        reply_markup=reply_keyboard  # کیبورد معمولی
+        reply_markup=reply_keyboard
     )
-
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = f"""
@@ -165,7 +143,6 @@ async def back_to_menu(client: Client, query: CallbackQuery):
 
 @bot.on_callback_query(filters.regex("^support"))
 async def support(client: Client, query: CallbackQuery):
-    user_id = query.from_user.id
     keyboard = [
         [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
     ]
@@ -176,7 +153,6 @@ async def support(client: Client, query: CallbackQuery):
 
 @bot.on_callback_query(filters.regex("^price_info"))
 async def price_info(client: Client, query: CallbackQuery):
-    user_id = query.from_user.id
     keyboard = [
         [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
     ]
@@ -188,7 +164,6 @@ async def price_info(client: Client, query: CallbackQuery):
 🔷 50 گیگ | کاربر نامحدود | 1 ماه : 110T
 🔶 100 گیگ | کاربر نامحدود | 1 ماه : 190T
 
-
 🔺 بسته‌های لایف‌تایم (بدون محدودیت زمان)
 ✅ بدون محدودیت کاربر و زمان
 
@@ -197,13 +172,11 @@ async def price_info(client: Client, query: CallbackQuery):
 🔶 50 گیگ : 160T
 🔷 100 گیگ : 360T
 
-
 🔺 بسته‌های بلندمدت
 
 🔶 50 گیگ | کاربر نامحدود | 2 ماه : 135T
 🔷 100 گیگ | کاربر نامحدود | 2 ماه : 260T
 🔶 150 گیگ | کاربر نامحدود | 2 ماه : 375T
-
     """
     await query.message.edit_text(text, reply_markup=reply_markup)
 
