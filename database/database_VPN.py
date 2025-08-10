@@ -45,6 +45,23 @@ class VpnDatabase:
                 purchase_date INTEGER NOT NULL,
                 FOREIGN KEY (telegram_id) REFERENCES users_vpn (telegram_id)
             )''')
+            cur.execute('''CREATE TABLE IF NOT EXISTS gift_codes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT UNIQUE NOT NULL,
+                amount INTEGER NOT NULL,
+                usage_limit INTEGER NOT NULL,
+                used_count INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL
+            )''')
+
+
+            cur.execute('''CREATE TABLE IF NOT EXISTS gift_code_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gift_code_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                used_at TEXT NOT NULL,
+                FOREIGN KEY (gift_code_id) REFERENCES gift_codes(id)
+            )''')
 
             self.conn.commit()
 
@@ -154,6 +171,53 @@ class VpnDatabase:
         cur.execute('UPDATE user_services SET expire_date = ? WHERE service_username = ?',
                     (new_expire_date, service_username))
         self.conn.commit()
+
+    def create_gift_code(self, code, amount, usage_limit):
+        with self._lock:
+            cur = self.conn.cursor()
+            created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cur.execute('''INSERT INTO gift_codes (code, amount, usage_limit, created_at)
+                        VALUES (?, ?, ?, ?)''', (code, amount, usage_limit, created_at))
+            self.conn.commit()
+
+    def get_gift_code(self, code):
+        cur = self.conn.cursor()
+        cur.execute('''SELECT * FROM gift_codes WHERE code = ?''', (code,))
+        return cur.fetchone()
+
+    def use_gift_code(self, user_id, gift_code_id):
+        with self._lock:
+            cur = self.conn.cursor()
+            used_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # ثبت استفاده کاربر
+            cur.execute('''INSERT INTO gift_code_usage (gift_code_id, user_id, used_at)
+                        VALUES (?, ?, ?)''', (gift_code_id, user_id, used_at))
+
+            # افزایش تعداد استفاده کد
+            cur.execute('''UPDATE gift_codes 
+                        SET used_count = used_count + 1 
+                        WHERE id = ?''', (gift_code_id,))
+
+            # دریافت مبلغ کد
+            cur.execute('''SELECT amount FROM gift_codes WHERE id = ?''', (gift_code_id,))
+            result = cur.fetchone()
+
+            if not result:
+                return 0  # یا خطا مدیریت شود
+
+            amount = result[0]
+
+            # افزایش موجودی کاربر
+            self.balance_increase(user_id, amount)
+            self.conn.commit()
+            return amount
+
+    def has_used_gift_code(self, user_id, gift_code_id):
+        cur = self.conn.cursor()
+        cur.execute('''SELECT * FROM gift_code_usage 
+                    WHERE user_id = ? AND gift_code_id = ?''', (user_id, gift_code_id))
+        return cur.fetchone() is not None
 
     def close(self):
         self.conn.close()

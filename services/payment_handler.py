@@ -57,6 +57,15 @@ class PaymentHandler:
             filters.regex("^longtime$")
         ))
 
+        self.bot.add_handler(CallbackQueryHandler(
+            self.apply_gift_code,
+            filters.regex("^apply_gift_code$")
+        ))
+        self.bot.add_handler(MessageHandler(
+            self.process_gift_code,
+            filters.private & filters.text
+        ))
+
         # بسته‌های خاص
         self.bot.add_handler(CallbackQueryHandler(
             self.handle_package_selection,
@@ -115,7 +124,7 @@ class PaymentHandler:
     async def money_managment(self, client, callback_query: CallbackQuery):
         try:
             keyboard = [
-                [InlineKeyboardButton("💰 افزایش موجودی", callback_data="balance_increase_menu")],
+                [InlineKeyboardButton("💰 افزایش موجودی", callback_data="balance_increase_menu"),InlineKeyboardButton("کد هدیه",callback_data="gift_code_menu")],
                 [InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_menu")],
             ]
 
@@ -152,6 +161,15 @@ class PaymentHandler:
         except Exception as e:
             logger.error(e)
             await callback_query.message.edit_text("⚠️ خطا در نمایش اطلاعات حساب!")
+
+    async def gift_code_menu(self, client, callback_query: CallbackQuery):
+        keyboard = [
+            [InlineKeyboardButton("🎫 اعمال کد هدیه", callback_data="apply_gift_code")],
+            [InlineKeyboardButton("🔙 بازگشت", callback_data="money_managment")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        text = "🎁 برای دریافت هدیه کد خود را وارد کنید"
+        await callback_query.message.edit_text(text, reply_markup=reply_markup)
 
     async def balance_increase_menu(self, client, callback_query: CallbackQuery):
         keyboard = [
@@ -434,9 +452,9 @@ class PaymentHandler:
             card_info = """
 💳 *اطلاعات حساب برای واریز*
 
-🏦 بانک: ملت
-🔢 شماره کارت: `6037-9972-1234-5678`
-👤 به نام: محمد احمدی
+🏦 بانک: سامان
+🔢 شماره کارت: `5460-0441-8618-6219`
+👤 به نام: ابوالفضل تشکری
 
 📸 لطفاً پس از واریز، عکس رسید پرداختی را ارسال کنید
             """
@@ -538,5 +556,68 @@ class PaymentHandler:
 
         # ویرایش پیام ادمین
         await callback_query.message.edit_caption("❌ درخواست افزایش موجودی رد شد")
+
+    async def apply_gift_code(self, client, callback_query: CallbackQuery):
+        user_id = callback_query.from_user.id
+        self.states[user_id] = {"state": "WAITING_FOR_GIFT_CODE"}
+
+        keyboard = [[InlineKeyboardButton("❌ لغو عملیات", callback_data="cancel_operation")]]
+        await callback_query.message.edit_text(
+            "🎁 لطفاً کد هدیه خود را وارد کنید:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    # متد جدید برای پردازش کد هدیه
+    async def process_gift_code(self, client, message: Message):
+        user_id = message.from_user.id
+        state = self.states.get(user_id, {})
+
+        if state.get("state") != "WAITING_FOR_GIFT_CODE":
+            return
+
+        try:
+            code = message.text.strip()
+            db = VpnDatabase()
+
+            # دریافت اطلاعات کد از دیتابیس
+            gift_code = db.get_gift_code(code)
+            if not gift_code:
+                await message.reply_text("❌ کد هدیه نامعتبر است!")
+                return
+
+            gift_code_id, _, amount, usage_limit, used_count, _ = gift_code
+
+            # بررسی محدودیت استفاده
+            if used_count >= usage_limit:
+                await message.reply_text("⚠️ تعداد دفعات استفاده از این کد به پایان رسیده است")
+                return
+
+            # بررسی اینکه کاربر قبلاً از این کد استفاده نکرده باشد
+            if db.has_used_gift_code(user_id, gift_code_id):
+                await message.reply_text("⚠️ شما قبلاً از این کد استفاده کرده‌اید")
+                return
+
+            # اعمال کد
+            added_amount = db.use_gift_code(user_id, gift_code_id)
+            new_balance = db.get_balance(user_id)
+
+            # نمایش نتیجه به کاربر
+            text = f"""
+            🎉 کد هدیه با موفقیت اعمال شد!
+
+            🪪 کد: `{code}`
+            💰 مبلغ اضافه شده: {added_amount:,} تومان
+            💳 موجودی جدید: {new_balance:,} تومان
+                """
+
+            keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="money_managment")]]
+            await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+            # پاک کردن حالت
+            self.states.pop(user_id, None)
+
+        except Exception as e:
+            logger.error(f"Error applying gift code: {e}")
+            await message.reply_text("⚠️ خطا در پردازش کد! لطفاً مجدداً تلاش کنید")
 
 

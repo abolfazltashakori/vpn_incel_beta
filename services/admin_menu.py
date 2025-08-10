@@ -27,7 +27,18 @@ class AdminMenu:
             self.show_menu,
             filters.regex("^admin_menu$")
         ))
-
+        self.bot.add_handler(CallbackQueryHandler(
+            self.create_gift_code_menu,
+            filters.regex("^create_gift_code_menu$")
+        ))
+        self.bot.add_handler(CallbackQueryHandler(
+            self.generate_gift_code,
+            filters.regex("^generate_gift_code_menu$")
+        ))
+        self.bot.add_handler(MessageHandler(
+            self.process_gift_code_details,
+            filters.private & filters.text
+        ))
         # هندلر گزینه "مشخصات کاربر"
         self.bot.add_handler(CallbackQueryHandler(
             self.admin_menu_user_detail,
@@ -48,6 +59,7 @@ class AdminMenu:
     def _get_admin_menu_data(self, first_name=None):
         keyboard = [
             [InlineKeyboardButton("مشخصات کاربر", callback_data="admin_menu_user_detail")],
+            [InlineKeyboardButton("ساخت کد هدیه",callback_data="create_gift_code_menu")],
             [InlineKeyboardButton("آمار خرید", callback_data="admin_menu_bot_analays")],
             [InlineKeyboardButton("بازگشت به منوی اصلی", callback_data="back_to_menu")]
         ]
@@ -56,6 +68,15 @@ class AdminMenu:
         if first_name:
             text = f"{first_name} عزیز، به پنل ادمین خوش آمدید"
         return text, reply_markup
+
+    async def create_gift_code_menu(self, client, callback_query: CallbackQuery):
+        keyboard = [
+            [InlineKeyboardButton("ساخت کد", callback_data="generate_gift_code_menu")],
+            [InlineKeyboardButton("بازگشت", callback_data="admin_menu")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        text = "فرمت ساخت کد : تعداد استفاده,مقدار اضافه شدن موجودی تومان"
+        await callback_query.message.edit_text(text, reply_markup=reply_markup)
 
     async def send_admin_menu(self, chat_id, user_id, message_id=None):
         """Helper to send/edit admin menu"""
@@ -154,3 +175,57 @@ class AdminMenu:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await callback_query.message.edit_text(text, reply_markup=reply_markup)
+
+    async def generate_gift_code(self, client, callback_query: CallbackQuery):
+        user_id = callback_query.from_user.id
+        self.states[user_id] = "WAITING_FOR_GIFT_CODE_DETAILS"
+
+        await callback_query.message.edit_text(
+            "📝 لطفاً مشخصات کد هدیه را به فرمت زیر ارسال کنید:\n\n"
+            "`تعداد_استفاده,مقدار_موجودی`\n\n"
+            "مثال: `5,50000`\n"
+            "یعنی کدی که 5 بار قابل استفاده است و هر بار 50,000 تومان افزایش موجودی می‌دهد"
+        )
+
+    # متد جدید برای پردازش مشخصات کد هدیه
+    async def process_gift_code_details(self, client, message: Message):
+        user_id = message.from_user.id
+        if self.states.get(user_id) != "WAITING_FOR_GIFT_CODE_DETAILS":
+            return
+
+        try:
+            # پارامترها را از پیام جدا کنید
+            parts = message.text.split(',')
+            if len(parts) != 2:
+                raise ValueError("فرمت نادرست")
+
+            usage_limit = int(parts[0].strip())
+            amount = int(parts[1].strip())
+
+            # ایجاد کد تصادفی
+            import random
+            import string
+            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+            # ذخیره در دیتابیس
+            db = VpnDatabase()
+            db.create_gift_code(code, amount, usage_limit)
+
+            # نمایش کد به ادمین
+            text = f"""
+    ✅ کد هدیه با موفقیت ایجاد شد!
+
+    🪪 کد: `{code}`
+    💰 مبلغ: {amount:,} تومان
+    ♻️ تعداد دفعات قابل استفاده: {usage_limit}
+            """
+
+            keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")]]
+            await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+            # پاک کردن حالت
+            self.states.pop(user_id, None)
+
+        except Exception as e:
+            #logger.error(f"Error creating gift code: {e}")
+            await message.reply_text("❌ خطا در ایجاد کد! لطفاً فرمت را بررسی کنید")
