@@ -52,21 +52,21 @@ class VpnHandler:
         current_date = to_jalali(datetime.now())
 
         text = f"""
-    🗂 اطلاعات حساب کاربری شما :
+👤💼 مشخصات حساب کاربری شما:
 
-    🪪 شناسه کاربری: {user_info[0]}
-    👤 نام: {user_info[1]} {user_info[2] or ''}
-    👨‍👩‍👦 کد معرف شما : {user_info[3] or 'ندارد'}
-    📱 شماره تماس : {user_info[4] or '🔴 ارسال نشده است 🔴'}
-    ⌚️ زمان ثبت نام : {join_date}
-    💰 موجودی: {user_info[6]:,} تومان
-    🛒 تعداد سرویس های خریداری شده : {user_info[7]} عدد
-    📑 تعداد فاکتور های پرداخت شده : {user_info[8]} عدد
-    🤝 تعداد زیر مجموعه های شما : {user_info[9]} نفر
-    🔖 گروه کاربری : {user_info[10]}
+🆔 شناسه کاربری: {user_info[0]}
+👤 نام: {user_info[1]} {user_info[2] or ''}
+👥 کد معرف: {user_info[3] or '─'}
+📞 شماره تماس: {user_info[4] or '❌ ثبت نشده'}
+📅 زمان ثبت نام: {join_date}
+💰 موجودی: {user_info[6]:,} تومان
+📦 تعداد سرویس‌ها: {user_info[7]} عدد
+🧾 تعداد فاکتورها: {user_info[8]} عدد
+👨‍👩‍👧‍👦 زیرمجموعه‌ها: {user_info[9]} نفر
+🏷️ گروه کاربری: {user_info[10]}
 
-    📆 {current_date} → ⏰ {datetime.now().strftime('%H:%M:%S')}
-    """
+⏱️ تاریخ: {current_date} → ساعت: {datetime.now().strftime('%H:%M:%S')}
+"""
 
         keyboard = [
             [InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_menu")]
@@ -90,11 +90,11 @@ class VpnHandler:
 
             token = MarzbanService.get_admin_token()
             if not token:
-                raise Exception("خطا در اتصال به سرور")
+                raise Exception("🔴 خطا در اتصال به سرور")
 
             inbounds = MarzbanService.get_vless_inbound_tags(token)
             if not inbounds:
-                raise Exception("هیچ inbound فعالی یافت نشد")
+                raise Exception("⚠️ هیچ inbound فعالی یافت نشد")
 
             volume_gb = 200 / (1024)
             service = MarzbanService.create_service(
@@ -105,12 +105,12 @@ class VpnHandler:
                 days=1
             )
             if not service:
-                raise Exception("خطا در ایجاد سرویس")
+                raise Exception("🔴 خطا در ایجاد سرویس")
 
             self.db.active_test_service(user.id, True)
 
             text = f"""
-🎉 **سرویس تست فعال شد!**
+🎉✨ **سرویس تست فعال شد!**
 
 📛 نام سرویس: `{service['username']}`
 📦 حجم: 200 مگابایت
@@ -118,7 +118,7 @@ class VpnHandler:
 🔗 لینک اتصال:
 `{service['subscription_url'] or service['links'][0]}`
 
-⚠️ توجه: این سرویس فقط برای تست اولیه می‌باشد
+💡 توجه: این سرویس فقط برای تست اولیه می‌باشد
 """
             await callback_query.message.edit_text(text)
         except Exception as e:
@@ -130,21 +130,21 @@ class VpnHandler:
         services = self.db.get_user_services(user_id)
 
         if not services:
-            await callback_query.message.edit_text("🛑 شما هیچ سرویس فعالی ندارید!")
+            await callback_query.message.edit_text("📭 شما هیچ سرویس فعالی ندارید!")
             return
 
         keyboard = []
         for service in services:
             service_name = service[2]  # service_username
             btn = InlineKeyboardButton(
-                text=f"سرویس {service_name}",
+                text=f"📡 سرویس {service_name}",
                 callback_data=f"service_details_{service_name}"
             )
             keyboard.append([btn])
 
         keyboard.append([InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_menu")])
 
-        text = "🔻 سرویس های فعال شما:\nلطفا یک سرویس را انتخاب کنید"
+        text = "📦 سرویس‌های فعال شما:\nلطفا یک سرویس را انتخاب کنید"
         await callback_query.message.edit_text(
             text,
             reply_markup=InlineKeyboardMarkup(keyboard)
@@ -156,7 +156,7 @@ class VpnHandler:
         service = self.db.get_service_by_username(service_username)
 
         if not service:
-            await callback_query.answer("سرویس یافت نشد!")
+            await callback_query.answer("⚠️ سرویس یافت نشد!")
             return
 
         # محاسبه زمان باقیمانده
@@ -164,12 +164,12 @@ class VpnHandler:
         remaining_days = (expire_date - datetime.now()).days
 
         text = f"""
-    📦 مشخصات سرویس:
-    ┌ شناسه سرویس: `{service[2]}`
-    ├ حجم کل: {service[4]} گیگابایت
-    ├ زمان باقیمانده: {remaining_days} روز
-    └ تاریخ انقضا: {expire_date.strftime('%Y-%m-%d %H:%M')}
-    """
+🔍📡 مشخصات سرویس:
+┌─ 📛 شناسه: `{service[2]}`
+├─ 💾 حجم کل: {service[4]} گیگابایت
+├─ ⏳ زمان باقیمانده: {remaining_days} روز
+└─ 📅 تاریخ انقضا: {expire_date.strftime('%Y-%m-%d %H:%M')}
+"""
         keyboard = [
             [InlineKeyboardButton("🔄 تمدید سرویس", callback_data=f"renew_service_{service[2]}")],
             [InlineKeyboardButton("🔙 بازگشت", callback_data="my_service_menu")]
@@ -187,7 +187,7 @@ class VpnHandler:
         user_id = callback_query.from_user.id
 
         if not service:
-            await callback_query.answer("سرویس یافت نشد!")
+            await callback_query.answer("⚠️ سرویس یافت نشد!")
             return
 
         package_id = service[3]
@@ -201,10 +201,10 @@ class VpnHandler:
         new_expire_date = int((datetime.now() + timedelta(days=30)).timestamp())
 
         text = f"""
-    ⚠️ آیا می‌خواهید این سرویس را تمدید کنید؟
-    ├ هزینه تمدید: {package_details['price']:,} تومان
-    └ مدت تمدید: 30 روز
-    """
+🔄 آیا می‌خواهید این سرویس را تمدید کنید؟
+├─ 💰 هزینه: {package_details['price']:,} تومان
+└─ ⏳ مدت: 30 روز
+"""
         keyboard = [
             [InlineKeyboardButton("✅ بله، تمدید کن", callback_data=f"confirm_renew_{service_username}")],
             [InlineKeyboardButton("❌ خیر، بازگشت", callback_data=f"service_details_{service_username}")]
@@ -225,7 +225,7 @@ class VpnHandler:
         user_id = callback_query.from_user.id
 
         if not service:
-            await callback_query.answer("سرویس یافت نشد!")
+            await callback_query.answer("⚠️ سرویس یافت نشد!")
             return
 
         package_id = service[3]
@@ -239,9 +239,9 @@ class VpnHandler:
         balance = db.get_balance(user_id)
         if balance < package_details['price']:
             await callback_query.message.edit_text(
-                "❌ موجودی کافی نیست!\n"
-                f"موجودی فعلی: {balance:,} تومان\n"
-                f"مبلغ مورد نیاز: {package_details['price']:,} تومان"
+                "⚠️ موجودی کافی نیست!\n"
+                f"├─ 💰 موجودی فعلی: {balance:,} تومان\n"
+                f"└─ 💸 مبلغ مورد نیاز: {package_details['price']:,} تومان"
             )
             return
 
@@ -263,7 +263,7 @@ class VpnHandler:
             db.reset_service(service_username, new_expire_date)
 
             await callback_query.message.edit_text(
-                "✅ سرویس با موفقیت تمدید و ریست شد!\n"
+                "✅ سرویس با موفقیت تمدید شد!\n"
                 f"📆 انقضای جدید: {datetime.fromtimestamp(new_expire_date).strftime('%Y-%m-%d %H:%M')}"
             )
         except Exception as e:

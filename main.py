@@ -1,7 +1,8 @@
 import sys
 import os
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, KeyboardButton , ReplyKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, KeyboardButton, \
+    ReplyKeyboardMarkup
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from datetime import datetime
 from database.database_VPN import VpnDatabase
@@ -32,7 +33,7 @@ def close_all_db_connections():
     for db in database_connections:
         if hasattr(db, 'close'):
             db.close()
-    print("تمامی اتصالات دیتابیس بسته شدند")
+    print("✅ تمامی اتصالات دیتابیس بسته شدند")
 
 
 # atexit.register(close_all_db_connections)
@@ -77,29 +78,29 @@ async def start_handler(client: Client, message: Message):
     # ایجاد منوی کاربر
     if user_id == admin_id:
         keyboard = [
-            [InlineKeyboardButton("دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
-            [InlineKeyboardButton("خرید سرویس جدید", callback_data="buy_new_service_menu"),
-             InlineKeyboardButton("سرویس های من", callback_data="my_service_menu")],
-            [InlineKeyboardButton("مدیریت کیف پول", callback_data="money_managment"),
-             InlineKeyboardButton("تعرفه بسته ها", callback_data="price_info")],
-            [InlineKeyboardButton("آموزش اتصال", callback_data="connection_info")],
-            [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
-             InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
-            [InlineKeyboardButton("بخش ادمین", callback_data="admin_menu")],
+            [InlineKeyboardButton("🎁 دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
+            [InlineKeyboardButton("🛒 خرید سرویس جدید", callback_data="buy_new_service_menu"),
+             InlineKeyboardButton("📦 سرویس های من", callback_data="my_service_menu")],
+            [InlineKeyboardButton("💳 مدیریت کیف پول", callback_data="money_managment"),
+             InlineKeyboardButton("💰 تعرفه بسته ها", callback_data="price_info")],
+            [InlineKeyboardButton("📚 آموزش اتصال", callback_data="connection_info")],
+            [InlineKeyboardButton("🛟 ارتباط با پشتیبانی", callback_data="support"),
+             InlineKeyboardButton("👤 مشخصات کاربری", callback_data="user_details")],
+            [InlineKeyboardButton("🔐 بخش ادمین", callback_data="admin_menu")],
         ]
     else:
         keyboard = [
-            [InlineKeyboardButton("دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
-            [InlineKeyboardButton("خرید سرویس جدید", callback_data="buy_new_service_menu"),
-             InlineKeyboardButton("سرویس های من", callback_data="my_service_menu")],
-            [InlineKeyboardButton("مدیریت کیف پول", callback_data="money_managment"),
-             InlineKeyboardButton("تعرفه بسته ها", callback_data="price_info")],
-            [InlineKeyboardButton("آموزش اتصال", callback_data="connection_info")],
-            [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
-             InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
+            [InlineKeyboardButton("🎁 دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
+            [InlineKeyboardButton("🛒 خرید سرویس جدید", callback_data="buy_new_service_menu"),
+             InlineKeyboardButton("📦 سرویس های من", callback_data="my_service_menu")],
+            [InlineKeyboardButton("💳 مدیریت کیف پول", callback_data="money_managment"),
+             InlineKeyboardButton("💰 تعرفه بسته ها", callback_data="price_info")],
+            [InlineKeyboardButton("📚 آموزش اتصال", callback_data="connection_info")],
+            [InlineKeyboardButton("🛟 ارتباط با پشتیبانی", callback_data="support"),
+             InlineKeyboardButton("👤 مشخصات کاربری", callback_data="user_details")],
         ]
     reply_keyboard = ReplyKeyboardMarkup(
-        [[KeyboardButton("خانه")]],
+        [[KeyboardButton("🏠 خانه")]],
         resize_keyboard=True,
         one_time_keyboard=True
     )
@@ -108,18 +109,17 @@ async def start_handler(client: Client, message: Message):
         reply_markup=reply_keyboard  # کیبورد معمولی
     )
 
-
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = f"""
-🌟 سلام {message.from_user.first_name} عزیز!
+🌟✨ سلام {message.from_user.first_name} عزیز!
 
-به سرویس VPN خوش آمدید!
+به سرویس VPN خوش آمدید! 🚀🌐
 لطفا یکی از گزینه‌های زیر را انتخاب کنید:
 """
     await message.reply_text(text, reply_markup=reply_markup)
 
 
-@bot.on_message(filters.text & filters.regex("^خانه$"))
+@bot.on_message(filters.text & filters.regex("^🏠 خانه$"))
 async def menu_handler(client: Client, message: Message):
     await start_handler(client, message)
 
@@ -131,33 +131,33 @@ async def back_to_menu(client: Client, query: CallbackQuery):
     message = query.message
     if user_id == admin_id:
         keyboard = [
-            [InlineKeyboardButton("دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
-            [InlineKeyboardButton("خرید سرویس جدید", callback_data="buy_new_service_menu"),
-             InlineKeyboardButton("سرویس های من", callback_data="my_service_menu")],
-            [InlineKeyboardButton("مدیریت کیف پول", callback_data="money_managment"),
-             InlineKeyboardButton("تعرفه بسته ها", callback_data="price_info")],
-            [InlineKeyboardButton("آموزش اتصال", callback_data="connection_info")],
-            [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
-             InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
-            [InlineKeyboardButton("بخش ادمین", callback_data="admin_menu")],
+            [InlineKeyboardButton("🎁 دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
+            [InlineKeyboardButton("🛒 خرید سرویس جدید", callback_data="buy_new_service_menu"),
+             InlineKeyboardButton("📦 سرویس های من", callback_data="my_service_menu")],
+            [InlineKeyboardButton("💳 مدیریت کیف پول", callback_data="money_managment"),
+             InlineKeyboardButton("💰 تعرفه بسته ها", callback_data="price_info")],
+            [InlineKeyboardButton("📚 آموزش اتصال", callback_data="connection_info")],
+            [InlineKeyboardButton("🛟 ارتباط با پشتیبانی", callback_data="support"),
+             InlineKeyboardButton("👤 مشخصات کاربری", callback_data="user_details")],
+            [InlineKeyboardButton("🔐 بخش ادمین", callback_data="admin_menu")],
         ]
     else:
         keyboard = [
-            [InlineKeyboardButton("دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
-            [InlineKeyboardButton("خرید سرویس جدید", callback_data="buy_new_service_menu"),
-             InlineKeyboardButton("سرویس های من", callback_data="my_service_menu")],
-            [InlineKeyboardButton("مدیریت کیف پول", callback_data="money_managment"),
-             InlineKeyboardButton("تعرفه بسته ها", callback_data="price_info")],
-            [InlineKeyboardButton("آموزش اتصال", callback_data="connection_info")],
-            [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
-             InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
+            [InlineKeyboardButton("🎁 دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
+            [InlineKeyboardButton("🛒 خرید سرویس جدید", callback_data="buy_new_service_menu"),
+             InlineKeyboardButton("📦 سرویس های من", callback_data="my_service_menu")],
+            [InlineKeyboardButton("💳 مدیریت کیف پول", callback_data="money_managment"),
+             InlineKeyboardButton("💰 تعرفه بسته ها", callback_data="price_info")],
+            [InlineKeyboardButton("📚 آموزش اتصال", callback_data="connection_info")],
+            [InlineKeyboardButton("🛟 ارتباط با پشتیبانی", callback_data="support"),
+             InlineKeyboardButton("👤 مشخصات کاربری", callback_data="user_details")],
         ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = f"""
-    🌟 سلام {message.from_user.first_name} عزیز!
+    🌟✨ سلام {message.from_user.first_name} عزیز!
 
-    به سرویس VPN خوش آمدید!
+    به سرویس VPN خوش آمدید! 🚀🌐
     لطفا یکی از گزینه‌های زیر را انتخاب کنید:
     """
     await message.edit_text(text, reply_markup=reply_markup)
@@ -167,10 +167,17 @@ async def back_to_menu(client: Client, query: CallbackQuery):
 async def support(client: Client, query: CallbackQuery):
     user_id = query.from_user.id
     keyboard = [
-        [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
+        [InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_menu")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    text = "در صورت بروز هر گونه مشکل با پشتیبان در تماس باشید  https://t.me/Incel_support"
+    text = """
+🛟 نیاز به کمک دارید؟
+✅ تیم پشتیبانی ما آماده پاسخگویی است
+
+📞 برای ارتباط با پشتیبانی روی لینک زیر کلیک کنید:
+👉 https://t.me/Incel_support
+
+"""
     await query.message.edit_text(text, reply_markup=reply_markup)
 
 
@@ -178,36 +185,37 @@ async def support(client: Client, query: CallbackQuery):
 async def price_info(client: Client, query: CallbackQuery):
     user_id = query.from_user.id
     keyboard = [
-        [InlineKeyboardButton("بازگشت", callback_data="back_to_menu")],
+        [InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_menu")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = """
-    🔺 بسته‌های عادی
+💰💎 لیست تعرفه سرویس‌های VPN:
 
+🔺 بسته‌های عادی
+──────────────────
 🔶 20 گیگ | کاربر نامحدود | 1 ماه : 50T
 🔷 50 گیگ | کاربر نامحدود | 1 ماه : 110T
 🔶 100 گیگ | کاربر نامحدود | 1 ماه : 190T
 
-
 🔺 بسته‌های لایف‌تایم (بدون محدودیت زمان)
 ✅ بدون محدودیت کاربر و زمان
-
+──────────────────
 🔶 10 گیگ : 35T
 🔷 20 گیگ : 60T
 🔶 50 گیگ : 160T
 🔷 100 گیگ : 360T
 
-
 🔺 بسته‌های بلندمدت
-
+──────────────────
 🔶 50 گیگ | کاربر نامحدود | 2 ماه : 135T
 🔷 100 گیگ | کاربر نامحدود | 2 ماه : 260T
 🔶 150 گیگ | کاربر نامحدود | 2 ماه : 375T
 
-    """
+💡 نکته: تمامی قیمت‌ها به تومان می‌باشند
+"""
     await query.message.edit_text(text, reply_markup=reply_markup)
 
 
 if __name__ == "__main__":
-    print("Bot is running...")
+    print("🤖 ربات در حال اجراست...")
     bot.run()
