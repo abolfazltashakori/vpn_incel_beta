@@ -62,7 +62,7 @@ class VpnDatabase:
         cur.execute('''INSERT OR IGNORE INTO users_vpn (
             telegram_id, first_name, last_name, username, join_date
         ) VALUES (?,?,?,?,?)''', (
-            telegram_id,
+            str(telegram_id),  # Convert to string
             first_name,
             last_name or "",
             username or "",
@@ -109,7 +109,7 @@ class VpnDatabase:
         cur.execute('''SELECT telegram_id, first_name, last_name, referral_code, phone_number, 
                     join_date, balance, purchase_count, invoice_count, referral_count, user_group 
                     FROM users_vpn 
-                    WHERE telegram_id = ?''', (telegram_id,))
+                    WHERE telegram_id = ?''', (str(telegram_id),))
         return cur.fetchone()
 
     def increment_purchase_count(self, telegram_id):
