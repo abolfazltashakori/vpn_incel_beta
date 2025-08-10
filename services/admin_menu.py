@@ -108,7 +108,6 @@ class AdminMenu:
             # تبدیل آیدی به عدد
             target_user_id = message.text.strip()
 
-            # دریافت اطلاعات کاربر از دیتابیس
             user_info = self.db.get_user_info(target_user_id)
 
             if not user_info:
