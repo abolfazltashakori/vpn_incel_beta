@@ -106,7 +106,7 @@ class AdminMenu:
 
         try:
             # تبدیل آیدی به عدد
-            target_user_id = int(message.text.strip())
+            target_user_id = message.text.strip()
 
             # دریافت اطلاعات کاربر از دیتابیس
             user_info = self.db.get_user_info(target_user_id)

@@ -105,11 +105,13 @@ class VpnDatabase:
             self.conn.commit()
 
     def get_user_info(self, telegram_id):
+        # Convert to string to ensure type consistency
+        telegram_id = str(telegram_id)
         cur = self.conn.cursor()
         cur.execute('''SELECT telegram_id, first_name, last_name, referral_code, phone_number, 
                     join_date, balance, purchase_count, invoice_count, referral_count, user_group 
                     FROM users_vpn 
-                    WHERE telegram_id = ?''', (str(telegram_id),))
+                    WHERE telegram_id = ?''', (telegram_id,))
         return cur.fetchone()
 
     def increment_purchase_count(self, telegram_id):
