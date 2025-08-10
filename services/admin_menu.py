@@ -1,4 +1,4 @@
-import logging
+import logger
 from pyrogram import filters
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import (
@@ -9,7 +9,7 @@ from pyrogram.types import (
 )
 from database.database_VPN import VpnDatabase
 from utils.persian_tools import to_jalali
-
+import logging
 # وضعیت‌های کانورسیشن
 WAITING_FOR_USER_ID = 1
 ADMIN_MENU = 0
@@ -27,6 +27,7 @@ class AdminMenu:
             self.show_menu,
             filters.regex("^admin_menu$")
         ))
+        # اضافه کردن هندلر برای منوی ساخت کد
         self.bot.add_handler(CallbackQueryHandler(
             self.create_gift_code_menu,
             filters.regex("^create_gift_code_menu$")
@@ -178,26 +179,31 @@ class AdminMenu:
 
     async def generate_gift_code(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
+        # تنظیم وضعیت کاربر
         self.states[user_id] = "WAITING_FOR_GIFT_CODE_DETAILS"
 
         await callback_query.message.edit_text(
             "📝 لطفاً مشخصات کد هدیه را به فرمت زیر ارسال کنید:\n\n"
             "`تعداد_استفاده,مقدار_موجودی`\n\n"
             "مثال: `5,50000`\n"
-            "یعنی کدی که 5 بار قابل استفاده است و هر بار 50,000 تومان افزایش موجودی می‌دهد"
+            "یعنی کدی که 5 بار قابل استفاده است و هر بار 50,000 تومان افزایش موجودی می‌دهد\n\n"
+            "⚠️ توجه: مقادیر باید بدون فاصله و با کاما جدا شوند"
         )
 
-    # متد جدید برای پردازش مشخصات کد هدیه
     async def process_gift_code_details(self, client, message: Message):
         user_id = message.from_user.id
-        if self.states.get(user_id) != "WAITING_FOR_GIFT_CODE_DETAILS":
+        logger.info(f"Processing gift code from user: {user_id}")
+
+        # بررسی وضعیت کاربر
+        if user_id not in self.states or self.states[user_id] != "WAITING_FOR_GIFT_CODE_DETAILS":
+            logger.warning(f"User {user_id} is not in correct state for gift code creation")
             return
 
         try:
             # پارامترها را از پیام جدا کنید
             parts = message.text.split(',')
             if len(parts) != 2:
-                raise ValueError("فرمت نادرست")
+                raise ValueError("فرمت نادرست: باید دو مقدار با کاما جدا شده باشند")
 
             usage_limit = int(parts[0].strip())
             amount = int(parts[1].strip())
@@ -220,12 +226,20 @@ class AdminMenu:
     ♻️ تعداد دفعات قابل استفاده: {usage_limit}
             """
 
-            keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")]]
+            keyboard = [[InlineKeyboardButton("🔙 بازگشت به منوی ادمین", callback_data="admin_menu")]]
             await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
             # پاک کردن حالت
-            self.states.pop(user_id, None)
+            del self.states[user_id]
+
+        except ValueError as ve:
+            logger.error(f"Value error in gift code creation: {ve}")
+            error_msg = "❌ خطا در فرمت داده‌ها!\n\n" \
+                        "لطفاً داده‌ها را به فرمت زیر وارد کنید:\n" \
+                        "`تعداد_استفاده,مقدار_موجودی`\n\n" \
+                        "مثال: `5,50000`"
+            await message.reply_text(error_msg)
 
         except Exception as e:
-            #logger.error(f"Error creating gift code: {e}")
-            await message.reply_text("❌ خطا در ایجاد کد! لطفاً فرمت را بررسی کنید")
+            logger.error(f"Error creating gift code: {e}", exc_info=True)
+            await message.reply_text("❌ خطای سیستمی در ایجاد کد! لطفاً مجدداً تلاش کنید")

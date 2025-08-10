@@ -186,7 +186,7 @@ class PaymentHandler:
                 [InlineKeyboardButton("📦 بسته‌های عادی", callback_data="normal")],
                 [InlineKeyboardButton("♾️ بسته‌های لایف‌تایم", callback_data="lifetime")],
                 [InlineKeyboardButton("🗓️ بسته‌های بلند مدت", callback_data="longtime")],
-                [InlineKeyboardButton("🚀 بسته‌های نامحدود", callback_data="unlimited")],
+                #[InlineKeyboardButton("🚀 بسته‌های نامحدود", callback_data="unlimited")],
                 [InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
