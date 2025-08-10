@@ -8,7 +8,7 @@ from pyrogram.types import (
     Message
 )
 from database.database_VPN import VpnDatabase
-from utils.persian_tools import to_jalali  # برای تبدیل تاریخ به شمسی
+from utils.persian_tools import to_jalali
 
 # وضعیت‌های کانورسیشن
 WAITING_FOR_USER_ID = 1
@@ -20,9 +20,6 @@ class AdminMenu:
         self.bot = bot
         self.db = VpnDatabase()
         self.states = {}  # ذخیره وضعیت هر کاربر
-
-    def register(self):
-        self.register_handlers()
 
     def register_handlers(self):
         # هندلر منوی اصلی ادمین
@@ -80,8 +77,10 @@ class AdminMenu:
 
     async def admin_menu_user_detail(self, client, callback_query: CallbackQuery):
         # تنظیم وضعیت به انتظار دریافت آیدی کاربر
-        self.states[callback_query.from_user.id] = WAITING_FOR_USER_ID
+        user_id = callback_query.from_user.id
+        self.states[user_id] = WAITING_FOR_USER_ID
 
+        await callback_query.answer()
         await callback_query.message.edit_text(
             "لطفاً آیدی عددی کاربر را ارسال کنید:\n\n"
             "⚠️ برای لغو عملیات /cancel را ارسال کنید"
@@ -89,25 +88,23 @@ class AdminMenu:
 
     async def handle_user_id_input(self, client, message: Message):
         user_id = message.from_user.id
+        current_state = self.states.get(user_id)
 
-        if self.states.get(user_id) != WAITING_FOR_USER_ID:
+        # فقط اگر در حالت انتظار آیدی هستیم پردازش شود
+        if current_state != WAITING_FOR_USER_ID:
             return
 
         if message.text.lower() == "/cancel":
-            # FIXED: Properly handle cancel command
-            if user_id in self.states:
-                del self.states[user_id]
-
-            # Send new admin menu instead of calling show_menu
+            # پاک کردن وضعیت و بازگشت به منو
+            self.states.pop(user_id, None)
             text, reply_markup = self._get_admin_menu_data()
-            await message.reply_text(text, reply_markup=reply_markup)
-            self.states[user_id] = ADMIN_MENU
+            await message.reply_text("❌ عملیات لغو شد", reply_markup=reply_markup)
             return
 
         try:
-            # تبدیل آیدی به عدد
             target_user_id = message.text.strip()
 
+            # چک کردن وجود کاربر در دیتابیس
             user_info = self.db.get_user_info(target_user_id)
 
             if not user_info:
@@ -138,15 +135,14 @@ class AdminMenu:
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await message.reply_text(text, reply_markup=reply_markup)
-
-            # بازگشت به وضعیت منوی اصلی
             self.states[user_id] = ADMIN_MENU
 
-        except ValueError:
-            await message.reply_text("⚠️ آیدی باید یک عدد باشد! لطفاً مجدداً تلاش کنید.")
+        except Exception as e:
+            logging.error(f"Error in handle_user_id_input: {e}")
+            await message.reply_text("⚠️ خطا در پردازش درخواست! لطفاً مجدداً تلاش کنید.")
 
     async def admin_menu_bot_analays(self, client, callback_query: CallbackQuery):
-        # پیاده‌سازی آمار خرید (می‌توانید کامل کنید)
+        await callback_query.answer()
         text = "📊 آمار خرید کلی ربات:\n\n"
         text += "• تعداد کاربران: 100\n"
         text += "• تعداد خریدهای موفق: 50\n"
