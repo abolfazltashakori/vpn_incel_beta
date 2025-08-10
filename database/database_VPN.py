@@ -4,7 +4,7 @@ import threading
 
 
 class VpnDatabase:
-    DB_NAME = 'VPN1_beta.db'
+    DB_NAME = 'VPN2_beta.db'
     _lock = threading.Lock()  # برای مدیریت دسترسی thread-safe
 
     def __init__(self):
