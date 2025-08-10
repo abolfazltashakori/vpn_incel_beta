@@ -1,7 +1,7 @@
 import sys
 import os
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery , KeyboardButton
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from datetime import datetime
 from database.database_VPN import VpnDatabase
@@ -84,7 +84,8 @@ async def start_handler(client: Client, message: Message):
             [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
              InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
             [InlineKeyboardButton("بخش ادمین", callback_data="admin_menu")],
-        ]
+            [KeyboardButton("خانه"),]
+            ]
     else:
         keyboard = [
             [InlineKeyboardButton("دریافت اکانت تست رایگان", callback_data="test_vpn_menu")],
@@ -95,6 +96,7 @@ async def start_handler(client: Client, message: Message):
             [InlineKeyboardButton("آموزش اتصال", callback_data="connection_info")],
             [InlineKeyboardButton("ارتباط با پشتیبانی", callback_data="support"),
              InlineKeyboardButton("مشخصات کاربری", callback_data="user_details")],
+            [KeyboardButton("خانه"), ]
         ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -106,6 +108,9 @@ async def start_handler(client: Client, message: Message):
 """
     await message.reply_text(text, reply_markup=reply_markup)
 
+@bot.on_message(filters.text & filters.regex("^خانه$"))
+async def menu_handler(client: Client, message: Message):
+    await start_handler(client, message)
 
 @bot.on_callback_query(filters.regex("^back_to_menu"))
 async def back_to_menu(client: Client, query: CallbackQuery):
