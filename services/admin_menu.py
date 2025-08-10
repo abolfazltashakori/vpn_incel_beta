@@ -48,20 +48,35 @@ class AdminMenu:
             filters.regex("^admin_menu_bot_analays$")
         ))
 
-    async def show_menu(self, client, callback_query: CallbackQuery):
-        await callback_query.answer()
+    def _get_admin_menu_data(self, first_name=None):
         keyboard = [
             [InlineKeyboardButton("مشخصات کاربر", callback_data="admin_menu_user_detail")],
             [InlineKeyboardButton("آمار خرید", callback_data="admin_menu_bot_analays")],
             [InlineKeyboardButton("بازگشت به منوی اصلی", callback_data="back_to_menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        user_first_name = callback_query.from_user.first_name
-        text = f"{user_first_name} عزیز، به پنل ادمین خوش آمدید"
-        await callback_query.message.edit_text(text, reply_markup=reply_markup)
+        text = "به پنل ادمین خوش آمدید"
+        if first_name:
+            text = f"{first_name} عزیز، به پنل ادمین خوش آمدید"
+        return text, reply_markup
 
-        # تنظیم وضعیت به منوی اصلی
-        self.states[callback_query.from_user.id] = ADMIN_MENU
+    async def send_admin_menu(self, chat_id, user_id, message_id=None):
+        """Helper to send/edit admin menu"""
+        text, reply_markup = self._get_admin_menu_data()
+        if message_id:
+            await self.bot.edit_message_text(chat_id, message_id, text, reply_markup=reply_markup)
+        else:
+            await self.bot.send_message(chat_id, text, reply_markup=reply_markup)
+        self.states[user_id] = ADMIN_MENU
+
+    async def show_menu(self, client, callback_query: CallbackQuery):
+        await callback_query.answer()
+        user_id = callback_query.from_user.id
+        await self.send_admin_menu(
+            chat_id=callback_query.message.chat.id,
+            user_id=user_id,
+            message_id=callback_query.message.id
+        )
 
     async def admin_menu_user_detail(self, client, callback_query: CallbackQuery):
         # تنظیم وضعیت به انتظار دریافت آیدی کاربر
@@ -75,15 +90,19 @@ class AdminMenu:
     async def handle_user_id_input(self, client, message: Message):
         user_id = message.from_user.id
 
-        # بررسی وضعیت کاربر
         if self.states.get(user_id) != WAITING_FOR_USER_ID:
             return
 
-        # بررسی لغو عملیات
         if message.text.lower() == "/cancel":
-            del self.states[user_id]
-            await message.reply_text("❌ عملیات لغو شد.")
-            return await self.show_menu(client, message)
+            # FIXED: Properly handle cancel command
+            if user_id in self.states:
+                del self.states[user_id]
+
+            # Send new admin menu instead of calling show_menu
+            text, reply_markup = self._get_admin_menu_data()
+            await message.reply_text(text, reply_markup=reply_markup)
+            self.states[user_id] = ADMIN_MENU
+            return
 
         try:
             # تبدیل آیدی به عدد
