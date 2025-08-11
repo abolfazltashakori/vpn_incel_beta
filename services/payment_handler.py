@@ -147,12 +147,12 @@ class PaymentHandler:
             filters.regex(r"^approve_balance_\d+_\d+$")
         ))
         self.bot.add_handler(CallbackQueryHandler(
-            self.start_balance_increase,
-            filters.regex("^start_balance_increase$")
+            self.reject_balance,
+            filters.regex(r"^reject_balance_\d+$")
         ))
         self.bot.add_handler(CallbackQueryHandler(
-            self.reject_balance,
-            filters.regex(r"^reject_balance_(\d+)$")
+            self.start_balance_increase,
+            filters.regex("^start_balance_increase$")
         ))
 
     async def money_managment(self, client, callback_query: CallbackQuery):
@@ -572,42 +572,35 @@ class PaymentHandler:
     async def get_receipt(self, client, message: Message):
         user_id = message.from_user.id
 
-        # بررسی حالت کاربر
-        state = None
+        # تعیین مبلغ بر اساس سیستم state مورد استفاده
         if user_id in self.states and self.states[user_id]["state"] == PaymentStates.GET_RECEIPT:
-            state = self.states[user_id]
+            amount = self.states[user_id]["amount"]
+            # پاکسازی حالت قدیم
+            del self.states[user_id]
         elif user_id in self.user_states and self.user_states[user_id].get("state") == "waiting_for_receipt":
-            state = self.user_states[user_id]
-
-        if not state:
+            amount = self.user_states[user_id].get("amount", 0)
+            # پاکسازی حالت جدید
+            del self.user_states[user_id]
+        else:
             return
-
-        amount = state.get("amount", 0)
-
-        # ذخیره درخواست در دیتابیس موقت
-        request_id = await self.payment_store.store(
-            user_id=user_id,
-            amount=amount,
-            photo_message_id=message.id
-        )
 
         user = message.from_user
 
         # ارسال رسید به ادمین
         admin_text = f"""
-📤 *درخواست افزایش موجودی*
+    📤 *درخواست افزایش موجودی*
 
-👤 کاربر: {user.first_name} (@{user.username or 'بدون نام کاربری'})
-🆔 آیدی: `{user.id}`
-💵 مبلغ: {amount:,} تومان
+    👤 کاربر: {user.first_name} (@{user.username or 'بدون نام کاربری'})
+    🆔 آیدی: `{user.id}`
+    💵 مبلغ: {amount:,} تومان
 
-لطفاً تأیید یا رد کنید:
+    لطفاً تأیید یا رد کنید:
         """
 
         keyboard = [
             [
-                InlineKeyboardButton("✅ تأیید", callback_data=f"approve_balance_{request_id}"),
-                InlineKeyboardButton("❌ رد", callback_data=f"reject_balance_{request_id}")
+                InlineKeyboardButton("✅ تأیید", callback_data=f"approve_balance_{user_id}_{amount}"),
+                InlineKeyboardButton("❌ رد", callback_data=f"reject_balance_{user_id}")
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -626,31 +619,16 @@ class PaymentHandler:
                 "✅ رسید شما با موفقیت ارسال شد\n"
                 "⏳ پس از تأیید ادمین، موجودی حساب شما افزایش خواهد یافت"
             )
-
-            # پاکسازی حالت کاربر
-            if user_id in self.states:
-                del self.states[user_id]
-            if user_id in self.user_states:
-                del self.user_states[user_id]
-
         except Exception as e:
             logger.error(f"Error sending receipt to admin: {e}")
             await message.reply_text("⚠️ خطا در ارسال رسید! لطفاً دوباره تلاش کنید.")
 
     async def approve_balance(self, client, callback_query: CallbackQuery):
         try:
-            # استخراج request_id از callback_data
-            request_id = callback_query.data.split('_')[-1]
-
-            # بازیابی اطلاعات درخواست
-            request_data = await self.payment_store.retrieve(request_id)
-            if not request_data:
-                await callback_query.answer("⚠️ درخواست یافت نشد یا منقضی شده است", show_alert=True)
-                return
-
-            user_id = request_data['user_id']
-            amount = request_data['amount']
-            photo_message_id = request_data['photo_message_id']
+            # استخراج user_id و amount از callback_data
+            parts = callback_query.data.split('_')
+            user_id = int(parts[2])
+            amount = int(parts[3])
 
             db = VpnDatabase()
             db.balance_increase(user_id, amount)
@@ -666,47 +644,38 @@ class PaymentHandler:
                     f"💰 موجودی جدید: {new_balance:,} تومان"
                 )
             except Exception as e:
-                logger.error(f"Error sending message to user: {e}")
-                # در صورت خطا، به ادمین اطلاع دهید
+                logger.error(f"Error sending message to user {user_id}: {e}")
+                # اطلاع به ادمین در صورت عدم موفقیت
                 await callback_query.message.reply_text(
-                    f"⚠️ ارسال پیام به کاربر {user_id} ناموفق بود. موجودی افزایش یافت."
+                    f"⚠️ ارسال پیام به کاربر {user_id} ناموفق بود. لطفاً به صورت دستی اطلاع دهید."
                 )
 
-            # ویرایش پیام اصلی
+            # ویرایش پیام ادمین
             try:
+                # سعی در ویرایش کپشن اصلی
                 await callback_query.message.edit_caption(
-                    f"✅ موجودی کاربر افزایش یافت\n"
-                    f"👤 کاربر: {user_id}\n"
-                    f"💵 مبلغ: {amount:,} تومان",
+                    caption=f"✅ موجودی کاربر افزایش یافت\n"
+                            f"👤 کاربر: {user_id}\n"
+                            f"💵 مبلغ: {amount:,} تومان",
                     reply_markup=None  # حذف دکمه‌ها
                 )
             except BadRequest:
-                # اگر ویرایش ممکن نبود، یک پیام جدید ارسال کنید
+                # اگر ویرایش کپشن ممکن نبود، یک پیام جدید ارسال کنید
                 await callback_query.message.reply_text(
                     f"✅ موجودی کاربر {user_id} افزایش یافت. مبلغ: {amount:,} تومان"
                 )
 
             await callback_query.answer("✅ موجودی کاربر افزایش یافت")
 
-            # حذف درخواست از ذخیره موقت
-            await self.payment_store.remove(request_id)
-
         except Exception as e:
             logger.error(f"Error in approve_balance: {e}")
-            await callback_query.answer("⚠️ خطا در پردازش تأیید! لطفاً دوباره امتحان کنید")
+            await callback_query.answer("⚠️ خطا در پردازش تأیید! لطفاً دوباره امتحان کنید", show_alert=True)
 
     async def reject_balance(self, client, callback_query: CallbackQuery):
         try:
-            # استخراج request_id از callback_data
-            request_id = callback_query.data.split('_')[-1]
-
-            # بازیابی اطلاعات درخواست
-            request_data = await self.payment_store.retrieve(request_id)
-            if not request_data:
-                await callback_query.answer("⚠️ درخواست یافت نشد یا منقضی شده است", show_alert=True)
-                return
-
-            user_id = request_data['user_id']
+            # استخراج user_id از callback_data
+            parts = callback_query.data.split('_')
+            user_id = int(parts[2])
 
             # ارسال پیام به کاربر
             try:
@@ -716,13 +685,16 @@ class PaymentHandler:
                     "❌ لطفاً با پشتیبانی تماس بگیرید"
                 )
             except Exception as e:
-                logger.error(f"Error sending rejection message: {e}")
+                logger.error(f"Error sending rejection message to user {user_id}: {e}")
+                await callback_query.message.reply_text(
+                    f"⚠️ ارسال پیام رد به کاربر {user_id} ناموفق بود."
+                )
 
-            # ویرایش پیام اصلی
+            # ویرایش پیام ادمین
             try:
                 await callback_query.message.edit_caption(
-                    "❌ درخواست افزایش موجودی رد شد",
-                    reply_markup=None  # حذف دکمه‌ها
+                    caption="❌ درخواست افزایش موجودی رد شد",
+                    reply_markup=None
                 )
             except BadRequest:
                 await callback_query.message.reply_text(
@@ -731,14 +703,9 @@ class PaymentHandler:
 
             await callback_query.answer("❌ درخواست افزایش موجودی رد شد")
 
-            # حذف درخواست از ذخیره موقت
-            await self.payment_store.remove(request_id)
-
         except Exception as e:
             logger.error(f"Error in reject_balance: {e}")
-            await callback_query.answer("⚠️ خطا در پردازش رد درخواست!")
-
-
+            await callback_query.answer("⚠️ خطا در پردازش رد درخواست!", show_alert=True)
 
     # متد جدید برای پردازش کد هدیه
     async def process_gift_code(self, client, message: Message):
