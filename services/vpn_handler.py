@@ -107,6 +107,16 @@ class VpnHandler:
             if not service:
                 raise Exception("🔴 خطا در ایجاد سرویس")
 
+            # ذخیره سرویس در دیتابیس (اضافه شده)
+            expire_timestamp = int((datetime.now() + timedelta(days=1)).timestamp())
+            self.db.add_user_service(
+                user.id,
+                service['username'],
+                "test",  # package_id
+                0.2,  # volume_gb (200 مگابایت = 0.2 گیگابایت)
+                expire_timestamp
+            )
+
             self.db.active_test_service(user.id, True)
 
             text = f"""
@@ -152,7 +162,7 @@ class VpnHandler:
 
 
     async def show_service_details(self, client, callback_query):
-        service_username = callback_query.data.split("_")[2]
+        service_username = callback_query.data.replace("service_details_", "", 1)
         service = self.db.get_service_by_username(service_username)
 
         if not service:
@@ -180,9 +190,8 @@ class VpnHandler:
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-
     async def handle_renew_service(self, client, callback_query):
-        service_username = callback_query.data.split("_")[2]
+        service_username = callback_query.data.replace("renew_service_", "", 1)
         service = self.db.get_service_by_username(service_username)
         user_id = callback_query.from_user.id
 
@@ -218,8 +227,8 @@ class VpnHandler:
 
     # در main.py این هندلر را اضافه کنید
 
-    async def confirm_renew_service(self,client, callback_query):
-        service_username = callback_query.data.split("_")[2]
+    async def confirm_renew_service(self, client, callback_query):
+        service_username = callback_query.data.replace("confirm_renew_", "", 1)
         db = VpnDatabase()
         service = db.get_service_by_username(service_username)
         user_id = callback_query.from_user.id
