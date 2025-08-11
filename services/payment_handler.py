@@ -14,8 +14,9 @@ from utils.config import Config
 from utils.persian_tools import *
 from datetime import *
 from database.database_VPN import VpnDatabase
-
+from main import *
 logger = logging.getLogger(__name__)
+
 
 
 class PaymentStates:
@@ -227,6 +228,8 @@ class PaymentHandler:
             logger.error(f"Error in lifetime_buy_service: {e}")
             await callback_query.message.edit_text("⚠️ خطا در نمایش بسته‌های لایف‌تایم!")
 
+
+
     async def unlimited_buy_service(self, client, callback_query: CallbackQuery):
         try:
             keyboard = [
@@ -414,14 +417,17 @@ class PaymentHandler:
         user_id = callback_query.from_user.id
         self.states[user_id] = {"state": PaymentStates.GET_AMOUNT}
 
+        # تنظیم حالت در user_states
+        user_states[user_id] = {"state": "waiting_for_amount"}  # اضافه شده
+
         text = """
-💳 *افزایش موجودی*
+    💳 *افزایش موجودی*
 
-لطفاً مبلغ مورد نظر را وارد کنید:
-• ✅ حداقل: ۵۰,۰۰۰ تومان
-• ✅ حداکثر: ۵۰۰,۰۰۰ تومان
+    لطفاً مبلغ مورد نظر را وارد کنید:
+    • ✅ حداقل: ۵۰,۰۰۰ تومان
+    • ✅ حداکثر: ۵۰۰,۰۰۰ تومان
 
-❌ برای لغو عملیات از دکمه زیر استفاده کنید
+    ❌ برای لغو عملیات از دکمه زیر استفاده کنید
         """
 
         keyboard = [[InlineKeyboardButton("❌ لغو عملیات", callback_data="cancel_operation")]]
@@ -515,7 +521,8 @@ class PaymentHandler:
         user_id = callback_query.from_user.id
         if user_id in self.states:
             del self.states[user_id]
-
+        if user_id in user_states:  # اضافه شده
+            del user_states[user_id]
         await callback_query.message.edit_text("❌ عملیات لغو شد")
 
     async def approve_balance(self, client, callback_query: CallbackQuery):

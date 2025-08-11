@@ -26,7 +26,8 @@ bot = Client(
 # متغیر برای ذخیره هندلرها
 handlers_initialized = False
 database_connections = []
-
+user_states = {}
+user_locks = {}
 
 def close_all_db_connections():
     """بستن تمام اتصالات دیتابیس هنگام خروج"""
@@ -36,7 +37,61 @@ def close_all_db_connections():
     print("✅ تمامی اتصالات دیتابیس بسته شدند")
 
 
-# atexit.register(close_all_db_connections)
+@bot.on_message(filters.text & filters.private)
+async def handle_amount_message(client, message: Message):
+    user_id = message.from_user.id
+
+    # ایجاد قفل برای هر کاربر
+    if user_id not in user_locks:
+        user_locks[user_id] = asyncio.Lock()
+
+    async with user_locks[user_id]:
+        # بررسی اینکه کاربر در حالت انتظار برای مبلغ است
+        if user_id not in user_states or user_states[user_id].get("state") != "waiting_for_amount":
+            return
+
+        try:
+            # تبدیل مبلغ به عدد (حذف کاما و کاراکترهای غیرعددی)
+            amount_text = message.text.replace(',', '').replace('٬', '').strip()
+            amount = float(amount_text)
+
+            # بررسی محدوده مجاز مبلغ
+            if amount < 50000 or amount > 500000:
+                await message.reply_text(
+                    "⚠️ مبلغ باید بین ۵۰,۰۰۰ تا ۵۰۰,۰۰۰ تومان باشد.\n"
+                    "لطفاً دوباره وارد کنید:"
+                )
+                return
+
+            # ذخیره مبلغ و تغییر حالت کاربر
+            user_states[user_id] = {
+                "state": "waiting_for_receipt",
+                "amount": amount
+            }
+
+            # ارسال اطلاعات کارت برای واریز
+            bank_info = (
+                f"💳 **افزایش موجودی: {amount:,.0f} تومان**\n\n"
+                "لطفاً مبلغ را به شماره کارت زیر واریز کنید:\n"
+                "`6219 8618 0441 5460`\n\n"
+                "🏦 بانک: سامان\n"
+                "👤 به نام: ابوالفضل تشکری\n\n"
+                "📸 پس از واریز، عکس رسید بانکی را ارسال کنید."
+            )
+
+            reply_markup = InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ لغو عملیات", callback_data="cancel_operation")]
+            ])
+
+            await message.reply_text(bank_info, reply_markup=reply_markup)
+
+        except ValueError:
+            await message.reply_text("⚠️ لطفاً یک عدد معتبر وارد کنید (مثال: 50000):")
+
+
+
+
+
 
 async def initialize_handlers():
     """تابع برای مقداردهی اولیه هندلرها"""
