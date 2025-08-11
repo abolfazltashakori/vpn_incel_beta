@@ -370,7 +370,7 @@ class PaymentHandler:
 
             # ایجاد کاربر در دیتابیس VPN
             user = callback_query.from_user
-            self.vpn_db.create_user_if_not_exists(
+            self.db.create_user_if_not_exists(
                 user.id,
                 user.first_name,
                 user.last_name or "",
@@ -417,7 +417,7 @@ class PaymentHandler:
                 self.user_db.increment_purchase_count(user_id)
                 self.user_db.increment_invoice_count(user_id)
                 expire_date = int((datetime.now(timezone.utc) + timedelta(days=package["days"])).timestamp())
-                self.vpn_db.add_user_service(
+                self.db.add_user_service(
                     user_id,
                     service["username"],
                     package_id,
