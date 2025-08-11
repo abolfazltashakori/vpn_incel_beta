@@ -4,7 +4,7 @@ import os
 class Config:
     API_ID = int(os.getenv("API_ID", 27424905))
     API_HASH = os.getenv("API_HASH", "3aa07c799d5d1331e353f3d5dec92b30")
-    BOT_TOKEN = os.getenv("BOT_TOKEN", "8432923905:AAFyr_o6atsJe8W9h46DzBkstCKy-ySVqAg")
+    BOT_TOKEN = os.getenv("BOT_TOKEN", "8421398204:AAEfZgaFuOpeCXDSik7zndhk00pOtArzlI4")
     ADMIN_ID = int(os.getenv("ADMIN_ID", 5381391685))
     BASE_URL = "https://lin.klaris-sub.top"
     MARZBAN_USERNAME = "abolfazl"
