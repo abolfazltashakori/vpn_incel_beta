@@ -117,7 +117,7 @@ class PaymentHandler:
         ))
         self.bot.add_handler(CallbackQueryHandler(
             self.approve_balance,
-            filters.regex(r"^approve_balance_(\d+)_(\d+)$")
+            filters.regex(r"^approve_balance_\d+_\d+$")
         ))
         self.bot.add_handler(CallbackQueryHandler(
             self.start_balance_increase,
@@ -599,26 +599,49 @@ class PaymentHandler:
         await callback_query.message.edit_text("❌ عملیات لغو شد")
 
     async def approve_balance(self, client, callback_query: CallbackQuery):
-        data = callback_query.data.split('_')
-        user_id = int(data[2])
-        amount = int(data[3])
+        try:
+            # استفاده از split('_') با در نظر گرفتن ساختار callback_data
+            data = callback_query.data.split('_')
+            # استخراج user_id و amount با توجه به ساختار: "approve_balance_{user_id}_{amount}"
+            user_id = int(data[2])
+            amount = int(data[3])
 
-        db = VpnDatabase()
-        db.balance_increase(user_id, amount)
-        new_balance = db.get_balance(user_id)
+            db = VpnDatabase()
+            # افزایش موجودی کاربر
+            db.balance_increase(user_id, amount)
+            new_balance = db.get_balance(user_id)
 
-        await client.send_message(
-            user_id,
-            f"✅ موجودی حساب شما افزایش یافت!\n\n"
-            f"💵 مبلغ واریزی: {amount:,} تومان\n"
-            f"💰 موجودی جدید: {new_balance:,} تومان"
-        )
+            try:
+                # ارسال پیام به کاربر
+                await client.send_message(
+                    user_id,
+                    f"✅ موجودی حساب شما افزایش یافت!\n\n"
+                    f"💵 مبلغ واریزی: {amount:,} تومان\n"
+                    f"💰 موجودی جدید: {new_balance:,} تومان"
+                )
+            except Exception as e:
+                logger.error(f"Error sending message to user: {e}")
+                # پیام جایگزین در صورت خطا
+                await callback_query.answer("✅ موجودی کاربر افزایش یافت (ارسال پیام به کاربر ناموفق بود)")
 
-        await callback_query.message.edit_caption(
-            f"✅ موجودی کاربر افزایش یافت\n"
-            f"💵 مبلغ: {amount:,} تومان"
-        )
-        await callback_query.answer("✅ موجودی کاربر افزایش یافت")
+            # ویرایش پیام ادمین
+            try:
+                await callback_query.message.edit_caption(
+                    f"✅ موجودی کاربر افزایش یافت\n"
+                    f"💵 مبلغ: {amount:,} تومان"
+                )
+            except BadRequest:
+                # اگر ویرایش کپشن ممکن نبود، پیام جدید ارسال می‌کنیم
+                await callback_query.message.reply_text(
+                    f"✅ موجودی کاربر افزایش یافت\n"
+                    f"💵 مبلغ: {amount:,} تومان"
+                )
+
+            await callback_query.answer("✅ موجودی کاربر افزایش یافت")
+
+        except Exception as e:
+            logger.error(f"Error in approve_balance: {e}")
+            await callback_query.answer("⚠️ خطا در پردازش تأیید! لطفاً دوباره امتحان کنید")
 
     async def reject_balance(self, client, callback_query: CallbackQuery):
         data = callback_query.data.split('_')
