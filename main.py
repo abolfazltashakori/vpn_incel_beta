@@ -23,18 +23,11 @@ bot = Client(
     bot_token=Config.BOT_TOKEN
 )
 
-# متغیر برای ذخیره هندلرها
-handlers_initialized = False
+
+
 database_connections = []
 
-vpn_handler = VpnHandler(bot)
-payment_handler = PaymentHandler(bot)
-admin_menu = AdminMenu(bot)
 
-# ثبت هندلرها
-vpn_handler.register_handlers()
-payment_handler.register_handlers()
-admin_menu.register_handlers()
 
 def close_all_db_connections():
     """بستن تمام اتصالات دیتابیس هنگام خروج"""
@@ -46,7 +39,13 @@ def close_all_db_connections():
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
+    vpn_handler = VpnHandler(bot)
+    payment_handler = PaymentHandler(bot)
+    admin_menu = AdminMenu(bot)
 
+    vpn_handler.register_handlers()
+    payment_handler.register_handlers()
+    admin_menu.register_handlers()
 
     user = message.from_user
     user_id = user.id
