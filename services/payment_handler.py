@@ -14,7 +14,6 @@ from utils.config import Config
 from utils.persian_tools import *
 from datetime import *
 from database.database_VPN import VpnDatabase
-from main import *
 logger = logging.getLogger(__name__)
 
 
