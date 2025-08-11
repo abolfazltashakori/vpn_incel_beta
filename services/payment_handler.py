@@ -431,8 +431,7 @@ class PaymentHandler:
 
     async def get_amount(self, client, message: Message):
         user_id = message.from_user.id
-        # فقط اگر کاربر در وضعیت افزایش موجودی باشد پردازش شود
-        if self.states.get(user_id, {}).get("state") != PaymentStates.GET_AMOUNT:
+        if user_id not in self.states or self.states[user_id]["state"] != PaymentStates.GET_AMOUNT:
             return
 
         try:
