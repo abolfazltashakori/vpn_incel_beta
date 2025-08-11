@@ -7,7 +7,7 @@ from pyrogram.types import (
     CallbackQuery,
     Message
 )
-
+import asyncio
 from pyrogram.errors import BadRequest
 from services.marzban_service import MarzbanService
 from utils.config import Config
@@ -25,12 +25,14 @@ class PaymentStates:
 
 
 class PaymentHandler:
-    def __init__(self, bot):
+    def __init__(self, bot, user_states, user_locks):  # تغییر سازنده
         self.bot = bot
         self.user_db = VpnDatabase()
         self.db = VpnDatabase()
         self.package_details = Config.PACKAGE_DETAILS
         self.states = {}
+        self.user_states = user_states  # ذخیره user_states
+        self.user_locks = user_locks    # ذخیره user_locks
 
     def register(self):
         self.register_handlers()
@@ -41,6 +43,11 @@ class PaymentHandler:
             self.buy_new_service_menu,
             filters.regex("^buy_new_service_menu$")
         ))
+        self.bot.add_handler(MessageHandler(
+            self.handle_amount_message,
+            filters.private & filters.text
+        ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.normal_buy_service,
             filters.regex("^normal$")
@@ -418,7 +425,7 @@ class PaymentHandler:
         self.states[user_id] = {"state": PaymentStates.GET_AMOUNT}
 
         # تنظیم حالت در user_states
-        user_states[user_id] = {"state": "waiting_for_amount"}  # اضافه شده
+        self.user_states[user_id] = {"state": "waiting_for_amount"}
 
         text = """
     💳 *افزایش موجودی*
@@ -434,6 +441,56 @@ class PaymentHandler:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await callback_query.message.edit_text(text, reply_markup=reply_markup)
+
+    async def handle_amount_message(self, client, message: Message):
+        user_id = message.from_user.id
+
+        # ایجاد قفل برای هر کاربر
+        if user_id not in self.user_locks:
+            self.user_locks[user_id] = asyncio.Lock()
+
+        async with self.user_locks[user_id]:
+            # بررسی اینکه کاربر در حالت انتظار برای مبلغ است
+            if user_id not in self.user_states or self.user_states[user_id].get("state") != "waiting_for_amount":
+                return
+
+            try:
+                # تبدیل مبلغ به عدد (حذف کاما و کاراکترهای غیرعددی)
+                amount_text = message.text.replace(',', '').replace('٬', '').strip()
+                amount = float(amount_text)
+
+                # بررسی محدوده مجاز مبلغ
+                if amount < 50000 or amount > 500000:
+                    await message.reply_text(
+                        "⚠️ مبلغ باید بین ۵۰,۰۰۰ تا ۵۰۰,۰۰۰ تومان باشد.\n"
+                        "لطفاً دوباره وارد کنید:"
+                    )
+                    return
+
+                # ذخیره مبلغ و تغییر حالت کاربر
+                self.user_states[user_id] = {
+                    "state": "waiting_for_receipt",
+                    "amount": amount
+                }
+
+                # ارسال اطلاعات کارت برای واریز
+                bank_info = (
+                    f"💳 **افزایش موجودی: {amount:,.0f} تومان**\n\n"
+                    "لطفاً مبلغ را به شماره کارت زیر واریز کنید:\n"
+                    "`6219 8618 0441 5460`\n\n"
+                    "🏦 بانک: سامان\n"
+                    "👤 به نام: ابوالفضل تشکری\n\n"
+                    "📸 پس از واریز، عکس رسید بانکی را ارسال کنید."
+                )
+
+                reply_markup = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("❌ لغو عملیات", callback_data="cancel_operation")]
+                ])
+
+                await message.reply_text(bank_info, reply_markup=reply_markup)
+
+            except ValueError:
+                await message.reply_text("⚠️ لطفاً یک عدد معتبر وارد کنید (مثال: 50000):")
 
     async def get_amount(self, client, message: Message):
         user_id = message.from_user.id
@@ -477,6 +534,8 @@ class PaymentHandler:
         user_id = message.from_user.id
         if user_id not in self.states or self.states[user_id]["state"] != PaymentStates.GET_RECEIPT:
             return
+        if user_id in self.user_states:
+            del self.user_states[user_id]
 
         amount = self.states[user_id]["amount"]
         user = message.from_user
@@ -521,8 +580,8 @@ class PaymentHandler:
         user_id = callback_query.from_user.id
         if user_id in self.states:
             del self.states[user_id]
-        if user_id in user_states:  # اضافه شده
-            del user_states[user_id]
+        if user_id in self.user_states:  # پاک کردن حالت کاربر
+            del self.user_states[user_id]
         await callback_query.message.edit_text("❌ عملیات لغو شد")
 
     async def approve_balance(self, client, callback_query: CallbackQuery):
