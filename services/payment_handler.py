@@ -421,9 +421,9 @@ class PaymentHandler:
 
     async def start_balance_increase(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
-        self.states[user_id] = {"state": PaymentStates.GET_AMOUNT}
 
-        # تنظیم حالت در user_states
+        # تنظیم حالت در هر دو سیستم برای سازگاری
+        self.states[user_id] = {"state": PaymentStates.GET_AMOUNT}
         self.user_states[user_id] = {"state": "waiting_for_amount"}
 
         text = """
@@ -449,7 +449,7 @@ class PaymentHandler:
             self.user_locks[user_id] = asyncio.Lock()
 
         async with self.user_locks[user_id]:
-            # بررسی اینکه کاربر در حالت انتظار برای مبلغ است
+            # بررسی حالت کاربر
             if user_id not in self.user_states or self.user_states[user_id].get("state") != "waiting_for_amount":
                 return
 
@@ -531,23 +531,34 @@ class PaymentHandler:
 
     async def get_receipt(self, client, message: Message):
         user_id = message.from_user.id
-        if user_id not in self.states or self.states[user_id]["state"] != PaymentStates.GET_RECEIPT:
-            return
-        if user_id in self.user_states:
-            del self.user_states[user_id]
 
-        amount = self.states[user_id]["amount"]
+        # بررسی حالت کاربر در هر دو سیستم state
+        if (user_id not in self.states or self.states[user_id]["state"] != PaymentStates.GET_RECEIPT) and \
+                (user_id not in self.user_states or self.user_states[user_id].get("state") != "waiting_for_receipt"):
+            return
+
+        # تعیین مبلغ بر اساس سیستم state مورد استفاده
+        if user_id in self.states and self.states[user_id]["state"] == PaymentStates.GET_RECEIPT:
+            amount = self.states[user_id]["amount"]
+            # پاکسازی حالت قدیم
+            del self.states[user_id]
+        else:
+            amount = self.user_states[user_id].get("amount", 0)
+            # پاکسازی حالت جدید
+            if user_id in self.user_states:
+                del self.user_states[user_id]
+
         user = message.from_user
 
         # ارسال رسید به ادمین
         admin_text = f"""
-📤 *درخواست افزایش موجودی*
+    📤 *درخواست افزایش موجودی*
 
-👤 کاربر: {user.first_name} (@{user.username})
-🆔 آیدی: `{user.id}`
-💵 مبلغ: {amount:,} تومان
+    👤 کاربر: {user.first_name} (@{user.username or 'بدون نام کاربری'})
+    🆔 آیدی: `{user.id}`
+    💵 مبلغ: {amount:,} تومان
 
-لطفاً تأیید یا رد کنید:
+    لطفاً تأیید یا رد کنید:
         """
 
         keyboard = [
@@ -558,29 +569,33 @@ class PaymentHandler:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # ارسال عکس و اطلاعات به ادمین
-        await client.send_photo(
-            Config.ADMIN_ID,
-            message.photo.file_id,
-            caption=admin_text,
-            reply_markup=reply_markup
-        )
+        try:
+            # ارسال عکس و اطلاعات به ادمین
+            await client.send_photo(
+                Config.ADMIN_ID,
+                message.photo.file_id,
+                caption=admin_text,
+                reply_markup=reply_markup
+            )
 
-        # پاسخ به کاربر
-        await message.reply_text(
-            "✅ رسید شما با موفقیت ارسال شد\n"
-            "⏳ پس از تأیید ادمین، موجودی حساب شما افزایش خواهد یافت"
-        )
-
-        # پاکسازی حالت کاربر
-        del self.states[user_id]
+            # پاسخ به کاربر
+            await message.reply_text(
+                "✅ رسید شما با موفقیت ارسال شد\n"
+                "⏳ پس از تأیید ادمین، موجودی حساب شما افزایش خواهد یافت"
+            )
+        except Exception as e:
+            logger.error(f"Error sending receipt to admin: {e}")
+            await message.reply_text("⚠️ خطا در ارسال رسید! لطفاً دوباره تلاش کنید.")
 
     async def cancel_operation(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
+
+        # پاکسازی همه حالت‌های کاربر
         if user_id in self.states:
             del self.states[user_id]
-        if user_id in self.user_states:  # پاک کردن حالت کاربر
+        if user_id in self.user_states:
             del self.user_states[user_id]
+
         await callback_query.message.edit_text("❌ عملیات لغو شد")
 
     async def approve_balance(self, client, callback_query: CallbackQuery):
