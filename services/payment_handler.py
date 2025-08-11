@@ -619,5 +619,3 @@ class PaymentHandler:
         except Exception as e:
             logger.error(f"Error applying gift code: {e}")
             await message.reply_text("⚠️ خطا در پردازش کد! لطفاً مجدداً تلاش کنید")
-
-
