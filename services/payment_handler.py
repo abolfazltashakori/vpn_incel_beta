@@ -624,11 +624,12 @@ class PaymentHandler:
             await message.reply_text("⚠️ خطا در ارسال رسید! لطفاً دوباره تلاش کنید.")
 
     async def approve_balance(self, client, callback_query: CallbackQuery):
+        logger.info(f"Approving balance: {callback_query.data}")
         try:
             # استخراج user_id و amount از callback_data
             parts = callback_query.data.split('_')
-            user_id = int(parts[2])
-            amount = int(parts[3])
+            user_id = int(parts[1])
+            amount = int(parts[2])
 
             db = VpnDatabase()
             db.balance_increase(user_id, amount)
