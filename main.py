@@ -27,6 +27,14 @@ bot = Client(
 handlers_initialized = False
 database_connections = []
 
+vpn_handler = VpnHandler(bot)
+payment_handler = PaymentHandler(bot)
+admin_menu = AdminMenu(bot)
+
+# ثبت هندلرها
+vpn_handler.register_handlers()
+payment_handler.register_handlers()
+admin_menu.register_handlers()
 
 def close_all_db_connections():
     """بستن تمام اتصالات دیتابیس هنگام خروج"""
@@ -36,29 +44,9 @@ def close_all_db_connections():
     print("✅ تمامی اتصالات دیتابیس بسته شدند")
 
 
-# atexit.register(close_all_db_connections)
-
-async def initialize_handlers():
-    """تابع برای مقداردهی اولیه هندلرها"""
-    global handlers_initialized
-    if not handlers_initialized:
-        # ایجاد نمونه‌های هندلر
-        vpn_handler = VpnHandler(bot)
-        payment_handler = PaymentHandler(bot)
-        admin_menu = AdminMenu(bot)
-
-        # ثبت هندلرها
-        vpn_handler.register_handlers()
-        payment_handler.register_handlers()
-        admin_menu.register_handlers()
-
-        handlers_initialized = True
-
-
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
-    # مقداردهی اولیه هندلرها در اولین اجرای start
-    await initialize_handlers()
+
 
     user = message.from_user
     user_id = user.id

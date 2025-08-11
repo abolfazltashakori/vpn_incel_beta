@@ -12,7 +12,9 @@ from utils.persian_tools import to_jalali
 import logging
 # وضعیت‌های کانورسیشن
 WAITING_FOR_USER_ID = 1
+WAITING_FOR_GIFT_CODE_DETAILS = 2  # وضعیت جدید
 ADMIN_MENU = 0
+
 
 
 class AdminMenu:
@@ -111,9 +113,7 @@ class AdminMenu:
     async def handle_user_id_input(self, client, message: Message):
         user_id = message.from_user.id
         current_state = self.states.get(user_id)
-
-        # فقط اگر در حالت انتظار آیدی هستیم پردازش شود
-        if current_state != WAITING_FOR_USER_ID:
+        if current_state != WAITING_FOR_USER_ID:  # فقط در این وضعیت پردازش شود
             return
 
         if message.text.lower() == "/cancel":
@@ -179,8 +179,7 @@ class AdminMenu:
 
     async def generate_gift_code(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
-        # تنظیم وضعیت کاربر
-        self.states[user_id] = "WAITING_FOR_GIFT_CODE_DETAILS"
+        self.states[user_id] = WAITING_FOR_GIFT_CODE_DETAILS
 
         await callback_query.message.edit_text(
             "📝 لطفاً مشخصات کد هدیه را به فرمت زیر ارسال کنید:\n\n"
@@ -192,7 +191,8 @@ class AdminMenu:
 
     async def process_gift_code_details(self, client, message: Message):
         user_id = message.from_user.id
-        logger.info(f"Processing gift code from user: {user_id}")
+        if self.states.get(user_id) != WAITING_FOR_GIFT_CODE_DETAILS:  # بررسی وضعیت
+            return
 
         # بررسی وضعیت کاربر
         if user_id not in self.states or self.states[user_id] != "WAITING_FOR_GIFT_CODE_DETAILS":
