@@ -597,9 +597,10 @@ class PaymentHandler:
     لطفاً تأیید یا رد کنید:
         """
 
+        amount_int = int(float(amount))
         keyboard = [
             [
-                InlineKeyboardButton("✅ تأیید", callback_data=f"approve_balance_{user_id}_{amount}"),
+                InlineKeyboardButton("✅ تأیید", callback_data=f"approve_balance_{user_id}_{amount_int}"),
                 InlineKeyboardButton("❌ رد", callback_data=f"reject_balance_{user_id}")
             ]
         ]
@@ -626,10 +627,10 @@ class PaymentHandler:
     async def approve_balance(self, client, callback_query: CallbackQuery):
         logger.info(f"Approving balance: {callback_query.data}")
         try:
-            # استخراج user_id و amount از callback_data
             parts = callback_query.data.split('_')
-            user_id = int(parts[1])
-            amount = int(parts[2])
+            user_id = int(parts[2])
+            amount_str = parts[3].replace(',', '').replace('٬', '')
+            amount = int(float(amount_str))
 
             db = VpnDatabase()
             db.balance_increase(user_id, amount)
