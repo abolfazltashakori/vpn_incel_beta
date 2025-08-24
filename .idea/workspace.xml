@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f8bf09ac-217a-49e5-ad6f-899b45d05e15" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/services/payment_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/payment_handler.py" afterDir="false" />
-    </list>
+    <list default="true" id="f8bf09ac-217a-49e5-ad6f-899b45d05e15" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -75,7 +73,7 @@
       <workItem from="1755030043537" duration="17000" />
       <workItem from="1755075315579" duration="9000" />
       <workItem from="1755164990281" duration="667000" />
-      <workItem from="1756040559988" duration="3509000" />
+      <workItem from="1756040559988" duration="3836000" />
     </task>
     <servers />
   </component>

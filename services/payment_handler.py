@@ -65,6 +65,16 @@ class PaymentHandler:
 
     def register_handlers(self):
         # دسته‌بندی‌های اصلی
+
+        self.bot.add_handler(CallbackQueryHandler(
+            self.apply_gift_code,
+            filters.regex("^apply_gift_code$")
+        ))
+        self.bot.add_handler(MessageHandler(
+            self.process_gift_code,
+            filters.private & filters.text
+        ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.buy_new_service_menu,
             filters.regex("^buy_new_service_menu$")
@@ -94,14 +104,7 @@ class PaymentHandler:
             filters.regex("^longtime$")
         ))
 
-        self.bot.add_handler(CallbackQueryHandler(
-            self.apply_gift_code,
-            filters.regex("^apply_gift_code$")
-        ))
-        self.bot.add_handler(MessageHandler(
-            self.process_gift_code,
-            filters.private & filters.text
-        ))
+
 
         # بسته‌های خاص
         self.bot.add_handler(CallbackQueryHandler(
@@ -559,8 +562,6 @@ class PaymentHandler:
         except ValueError:
             await message.reply_text("⚠️ لطفاً فقط عدد وارد کنید (مثال: 100000)")
 
-
-
     async def cancel_operation(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
 
@@ -571,6 +572,9 @@ class PaymentHandler:
             del self.user_states[user_id]
 
         await callback_query.message.edit_text("❌ عملیات لغو شد")
+
+        # بازگشت به منوی مدیریت پول
+        await self.money_managment(client, callback_query)
 
     async def get_receipt(self, client, message: Message):
         user_id = message.from_user.id
@@ -715,7 +719,7 @@ class PaymentHandler:
     async def process_gift_code(self, client, message: Message):
         user_id = message.from_user.id
 
-        # Check if user is in the correct state
+        # فقط اگر کاربر در حالت انتظار برای کد هدیه است پردازش شود
         if user_id not in self.user_states or self.user_states[user_id].get("state") != "waiting_for_gift_code":
             return
 
@@ -723,33 +727,34 @@ class PaymentHandler:
             code = message.text.strip().upper()
             db = VpnDatabase()
 
-            # Check code validity
-            is_valid, result = db.is_gift_code_valid(code)
+            # بررسی اعتبار کد
+            is_valid, amount, gift_id = db.is_gift_code_valid(code)
+
             if not is_valid:
-                await message.reply_text(f"❌ {result}")
+                await message.reply_text(f"❌ {amount}")  # amount در اینجا حاوی پیام خطاست
                 return
 
-            # Add balance to user
-            amount = result
-            db.balance_increase(user_id, amount)
-            new_balance = db.get_balance(user_id)
+            # بررسی آیا کاربر قبلاً از این کد استفاده کرده
+            if db.has_used_gift_code(user_id, gift_id):
+                await message.reply_text("❌ شما قبلاً از این کد استفاده کرده اید!")
+                return
 
-            # Mark code as used
-            db.conn.execute('''UPDATE gift_codes SET used = 1 WHERE code = ?''', (code,))
-            db.conn.commit()
+            # افزودن موجودی به کاربر
+            added_amount = db.use_gift_code(user_id, gift_id)
+            new_balance = db.get_balance(user_id)
 
             text = f"""
     🎉 کد تخفیف با موفقیت اعمال شد!
 
     🪪 کد: `{code}`
-    💰 مبلغ اضافه شده: {amount:,} تومان
+    💰 مبلغ اضافه شده: {added_amount:,} تومان
     💳 موجودی جدید: {new_balance:,} تومان
             """
 
             keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="money_managment")]]
             await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-            # Clear state
+            # پاکسازی state
             if user_id in self.user_states:
                 del self.user_states[user_id]
 
@@ -759,7 +764,12 @@ class PaymentHandler:
 
     async def apply_gift_code(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
-        # Set state to waiting for gift code
+
+        # پاکسازی هر state قبلی
+        if user_id in self.user_states:
+            del self.user_states[user_id]
+
+        # تنظیم state جدید برای کد هدیه
         self.user_states[user_id] = {"state": "waiting_for_gift_code"}
 
         keyboard = [[InlineKeyboardButton("❌ لغو", callback_data="cancel_operation")]]
