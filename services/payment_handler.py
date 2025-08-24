@@ -74,7 +74,7 @@ class PaymentHandler:
             filters.private & filters.text
         ))
         self.bot.add_handler(CallbackQueryHandler(
-            self.normal_buy_service,
+            self.gift_code_menu,
             filters.regex("^gift_code_menu$")
         ))
         self.bot.add_handler(CallbackQueryHandler(
