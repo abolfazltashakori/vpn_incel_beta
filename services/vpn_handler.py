@@ -142,7 +142,7 @@ class VpnHandler:
             await client.send_message(Config.ADMIN_ID, admin_text)
             url = "https://t.me/incel_help"
             keyboard = [
-                InlineKeyboardButton("راهنما استفاده", url=url),
+                [InlineKeyboardButton("راهنما استفاده", url=url),]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await callback_query.message.edit_reply_markup(text,reply_markup=reply_markup)
