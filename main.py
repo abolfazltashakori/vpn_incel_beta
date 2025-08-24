@@ -43,17 +43,15 @@ def close_all_db_connections():
 
 
 async def initialize_handlers():
-    """تابع برای مقداردهی اولیه هندلرها"""
     global handlers_initialized, admin_menu_instance, payment_handler_instance, vpn_handler_instance
 
     if not handlers_initialized:
         try:
-            # ایجاد نمونه‌های هندلر
+            # ایجاد نمونه‌های هندلر و ذخیره در متغیرهای global
             admin_menu_instance = AdminMenu(bot)
             payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
             vpn_handler_instance = VpnHandler(bot)
 
-            # ثبت هندلرها
             admin_menu_instance.register_handlers()
             print("✅ AdminMenu handlers registered")
 
@@ -68,7 +66,6 @@ async def initialize_handlers():
 
         except Exception as e:
             print(f"❌ Error initializing handlers: {e}")
-
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
