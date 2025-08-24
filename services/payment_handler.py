@@ -1,5 +1,6 @@
 import logging
 from pyrogram import filters
+from pyrogram.handlers import CallbackQueryHandler
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import (
     InlineKeyboardButton,
@@ -7,6 +8,8 @@ from pyrogram.types import (
     CallbackQuery,
     Message
 )
+from pyrogram.handlers import MessageHandler, CallbackQueryHandler
+from pyrogram import filters
 import uuid
 from collections import defaultdict
 import asyncio
@@ -65,7 +68,6 @@ class PaymentHandler:
 
     def register_handlers(self):
         # دسته‌بندی‌های اصلی
-
         self.bot.add_handler(CallbackQueryHandler(
             self.apply_gift_code,
             filters.regex("^apply_gift_code$")
@@ -79,32 +81,31 @@ class PaymentHandler:
             self.buy_new_service_menu,
             filters.regex("^buy_new_service_menu$")
         ))
-        self.bot.add_handler(MessageHandler(
-            self.handle_amount_message,
-            filters.private & filters.text
-        ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.gift_code_menu,
             filters.regex("^gift_code_menu$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.normal_buy_service,
             filters.regex("^normal$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.lifetime_buy_service,
             filters.regex("^lifetime$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.unlimited_buy_service,
             filters.regex("^unlimited$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.longtime_buy_service,
             filters.regex("^longtime$")
         ))
-
-
 
         # بسته‌های خاص
         self.bot.add_handler(CallbackQueryHandler(
@@ -117,14 +118,17 @@ class PaymentHandler:
             self.back_to_category,
             filters.regex(r"^back_to_(normal|lifetime|unlimited|longtime)$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.confirm_purchase,
             filters.regex(r"^confirm_(.*)$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.back_to_vpn_menu,
             filters.regex("^back_to_vpn_menu$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.money_managment,
             filters.regex("^money_managment$")
@@ -140,25 +144,36 @@ class PaymentHandler:
             self.get_amount,
             filters.private & filters.text & filters.regex(r'^\d+$')
         ))
+
         self.bot.add_handler(MessageHandler(
             self.get_receipt,
             filters.private & filters.photo
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.cancel_operation,
             filters.regex("^cancel_operation$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.approve_balance,
             filters.regex(r"^approve_balance_\d+_\d+$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.reject_balance,
             filters.regex(r"^reject_balance_\d+$")
         ))
+
         self.bot.add_handler(CallbackQueryHandler(
             self.start_balance_increase,
             filters.regex("^start_balance_increase$")
+        ))
+
+        # اضافه کردن هندلر handle_amount_message که قبلاً فراموش شده بود
+        self.bot.add_handler(MessageHandler(
+            self.handle_amount_message,
+            filters.private & filters.text
         ))
 
     async def money_managment(self, client, callback_query: CallbackQuery):
