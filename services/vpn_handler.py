@@ -145,7 +145,7 @@ class VpnHandler:
                 [InlineKeyboardButton("راهنما استفاده", url=url),]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await callback_query.message.edit_reply_markup(text,reply_markup=reply_markup)
+            await callback_query.message.edit_text(text,reply_markup=reply_markup)
         except Exception as e:
             await callback_query.message.edit_text(f"❌ خطا: {str(e)}")
 

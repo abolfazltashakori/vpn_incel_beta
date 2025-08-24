@@ -452,7 +452,7 @@ class PaymentHandler:
                     [InlineKeyboardButton("راهنمای استفاده",url=url)],
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
-                await callback_query.message.edit_reply_markup(text,reply_markup=reply_markup)
+                await callback_query.message.edit_text(text,reply_markup=reply_markup)
 
                 # ارسال پیام به ادمین
                 admin_text = (
