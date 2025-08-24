@@ -131,6 +131,12 @@ class VpnHandler:
 💡 توجه: این سرویس فقط برای تست اولیه می‌باشد
 """
             await callback_query.message.edit_text(text)
+            admin_text = f"""
+کاربر{user.id}
+یوزر نیم{user.username}
+سرویس تست دریافت کرد
+"""
+            await client.send_message(Config.ADMIN_ID, admin_text)
         except Exception as e:
             await callback_query.message.edit_text(f"❌ خطا: {str(e)}")
 

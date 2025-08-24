@@ -11,6 +11,7 @@ from services.payment_handler import PaymentHandler
 from services.admin_menu import AdminMenu
 from utils.config import Config
 import asyncio
+
 # تنظیم مسیر پروژه
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
@@ -23,38 +24,34 @@ bot = Client(
     bot_token=Config.BOT_TOKEN
 )
 
-# متغیر برای ذخیره هندلرها
+# متغیرهای global برای ذخیره هندلرها
 handlers_initialized = False
 database_connections = []
 user_states = {}
 user_locks = {}
-
-def close_all_db_connections():
-    """بستن تمام اتصالات دیتابیس هنگام خروج"""
-    for db in database_connections:
-        if hasattr(db, 'close'):
-            db.close()
-    print("✅ تمامی اتصالات دیتابیس بسته شدند")
-
-
+admin_menu = None
+payment_handler = None
+vpn_handler = None
+init_lock = asyncio.Lock()  # Lock برای جلوگیری از race condition
 
 
 async def initialize_handlers():
     """تابع برای مقداردهی اولیه هندلرها"""
-    global handlers_initialized
-    if not handlers_initialized:
-        # ایجاد نمونه‌های هندلر
-        admin_menu = AdminMenu(bot)
-        payment_handler = PaymentHandler(bot, user_states, user_locks)
-        vpn_handler = VpnHandler(bot)
+    global handlers_initialized, admin_menu, payment_handler, vpn_handler
 
-        admin_menu.register_handlers()
-        payment_handler.register_handlers()
- # اول ثبت شود
-  # سپس payment handler
-        vpn_handler.register_handlers()  # در نهایت vpn handler
+    async with init_lock:
+        if not handlers_initialized:
+            # ایجاد نمونه‌های هندلر و ذخیره در متغیرهای global
+            admin_menu = AdminMenu(bot)
+            payment_handler = PaymentHandler(bot, user_states, user_locks)
+            vpn_handler = VpnHandler(bot)
 
-        handlers_initialized = True
+            admin_menu.register_handlers()
+            payment_handler.register_handlers()  # اول ثبت شود
+            vpn_handler.register_handlers()  # در نهایت vpn handler
+
+            handlers_initialized = True
+            print("✅ همه هندلرها با موفقیت ثبت شدند")
 
 
 @bot.on_message(filters.command("start"))
