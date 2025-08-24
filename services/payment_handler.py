@@ -712,9 +712,10 @@ class PaymentHandler:
             logger.error(f"Error in reject_balance: {e}")
             await callback_query.answer("⚠️ خطا در پردازش رد درخواست!", show_alert=True)
 
-
     async def process_gift_code(self, client, message: Message):
         user_id = message.from_user.id
+
+        # Check if user is in the correct state
         if user_id not in self.user_states or self.user_states[user_id].get("state") != "waiting_for_gift_code":
             return
 
@@ -723,19 +724,18 @@ class PaymentHandler:
             db = VpnDatabase()
 
             # Check code validity
-            is_valid, result, gift_id = db.is_gift_code_valid(code)
+            is_valid, result = db.is_gift_code_valid(code)
             if not is_valid:
                 await message.reply_text(f"❌ {result}")
                 return
 
             # Add balance to user
             amount = result
-            db.use_gift_code(user_id, gift_id)
-
+            db.balance_increase(user_id, amount)
             new_balance = db.get_balance(user_id)
 
             # Mark code as used
-            db.conn.execute('''UPDATE gift_codes SET used_count = 1 WHERE code = ?''', (code,))
+            db.conn.execute('''UPDATE gift_codes SET used = 1 WHERE code = ?''', (code,))
             db.conn.commit()
 
             text = f"""
@@ -750,7 +750,8 @@ class PaymentHandler:
             await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
             # Clear state
-            del self.user_states[user_id]
+            if user_id in self.user_states:
+                del self.user_states[user_id]
 
         except Exception as e:
             logger.error(f"Error applying gift code: {e}")
@@ -758,6 +759,7 @@ class PaymentHandler:
 
     async def apply_gift_code(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
+        # Set state to waiting for gift code
         self.user_states[user_id] = {"state": "waiting_for_gift_code"}
 
         keyboard = [[InlineKeyboardButton("❌ لغو", callback_data="cancel_operation")]]
