@@ -76,15 +76,15 @@ class VpnDatabase:
         cur.execute('''SELECT id, amount, expire_date, used_count FROM gift_codes WHERE code = ?''', (code,))
         result = cur.fetchone()
         if not result:
-            return False, "کد نامعتبر است"
+            return False, "کد نامعتبر است", None
 
         gift_id, amount, expire_date, used_count = result
         if used_count > 0:
-            return False, "این کد قبلاً استفاده شده است"
+            return False, "این کد قبلاً استفاده شده است", None
 
         from datetime import datetime
         if datetime.now() > datetime.strptime(expire_date, "%Y-%m-%d"):
-            return False, "کد منقضی شده است"
+            return False, "کد منقضی شده است", None
 
         return True, amount, gift_id
 

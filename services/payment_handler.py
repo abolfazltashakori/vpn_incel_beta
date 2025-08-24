@@ -56,7 +56,7 @@ class PaymentHandler:
         self.db = VpnDatabase()
         self.package_details = Config.PACKAGE_DETAILS
         self.states = {}
-        self.user_states = user_states  # ذخیره user_states
+        self.user_states = user_states
         self.user_locks = user_locks    # ذخیره user_locks
         self.payment_store = PaymentDataStore()
 
@@ -719,7 +719,6 @@ class PaymentHandler:
     async def process_gift_code(self, client, message: Message):
         user_id = message.from_user.id
 
-        # فقط اگر کاربر در حالت انتظار برای کد هدیه است پردازش شود
         if user_id not in self.user_states or self.user_states[user_id].get("state") != "waiting_for_gift_code":
             return
 
@@ -728,18 +727,22 @@ class PaymentHandler:
             db = VpnDatabase()
 
             # بررسی اعتبار کد
-            is_valid, amount, gift_id = db.is_gift_code_valid(code)
+            result = db.is_gift_code_valid(code)
+            if not result[0]:
+                await message.reply_text(f"❌ {result[1]}")
+                return
 
+            is_valid, amount, gift_id = result
             if not is_valid:
-                await message.reply_text(f"❌ {amount}")  # amount در اینجا حاوی پیام خطاست
+                await message.reply_text(f"❌ {amount}")
                 return
 
-            # بررسی آیا کاربر قبلاً از این کد استفاده کرده
+            # بررسی استفاده قبلی کاربر از کد
             if db.has_used_gift_code(user_id, gift_id):
-                await message.reply_text("❌ شما قبلاً از این کد استفاده کرده اید!")
+                await message.reply_text("❌ شما قبلاً از این کد استفاده کرده‌اید!")
                 return
 
-            # افزودن موجودی به کاربر
+            # افزودن موجودی
             added_amount = db.use_gift_code(user_id, gift_id)
             new_balance = db.get_balance(user_id)
 
