@@ -720,14 +720,15 @@ class PaymentHandler:
             db = VpnDatabase()
 
             # Check code validity
-            is_valid, result = db.is_gift_code_valid(code)
+            is_valid, result, gift_id = db.is_gift_code_valid(code)
             if not is_valid:
                 await message.reply_text(f"❌ {result}")
                 return
 
             # Add balance to user
             amount = result
-            db.balance_increase(user_id, amount)
+            db.use_gift_code(user_id, gift_id)
+
             new_balance = db.get_balance(user_id)
 
             # Mark code as used

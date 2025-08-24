@@ -213,9 +213,7 @@ class AdminMenu:
             # Save to database
             db = VpnDatabase()
             created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            db.conn.execute('''INSERT INTO gift_codes (code, amount, expire_date, created_at)
-                            VALUES (?, ?, ?, ?)''', (code, amount, expire_date, created_at))
-            db.conn.commit()
+            db.create_gift_code(code, amount, expire_date)
 
             text = f"""
     ✅ کد تخفیف با موفقیت ایجاد شد!
