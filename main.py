@@ -48,9 +48,9 @@ async def initialize_handlers():
         payment_handler = PaymentHandler(bot, user_states, user_locks)
         vpn_handler = VpnHandler(bot)
 
-        # ثبت هندلرها به ترتیب صحیح
+        payment_handler.register_handlers()
         admin_menu.register_handlers()  # اول ثبت شود
-        payment_handler.register_handlers()  # سپس payment handler
+  # سپس payment handler
         vpn_handler.register_handlers()  # در نهایت vpn handler
 
         handlers_initialized = True
