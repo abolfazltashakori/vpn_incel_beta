@@ -198,11 +198,11 @@ class PaymentHandler:
 
     async def gift_code_menu(self, client, callback_query: CallbackQuery):
         keyboard = [
-            [InlineKeyboardButton("🎫 اعمال کد هدیه", callback_data="apply_gift_code")],
+            [InlineKeyboardButton("🎫 اعمال کد تخفیف", callback_data="apply_gift_code")],
             [InlineKeyboardButton("🔙 بازگشت", callback_data="money_managment")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        text = "🎁 برای دریافت هدیه کد خود را وارد کنید"
+        text = "🎁 برای استفاده از کد تخفیف، آن را وارد کنید"
         await callback_query.message.edit_text(text, reply_markup=reply_markup)
 
     async def balance_increase_menu(self, client, callback_query: CallbackQuery):
@@ -709,54 +709,44 @@ class PaymentHandler:
             logger.error(f"Error in reject_balance: {e}")
             await callback_query.answer("⚠️ خطا در پردازش رد درخواست!", show_alert=True)
 
-    # متد جدید برای پردازش کد هدیه
+
     async def process_gift_code(self, client, message: Message):
         user_id = message.from_user.id
-        state = self.states.get(user_id, {})
-
-        if state.get("state") != "WAITING_FOR_GIFT_CODE":
+        if user_id not in self.user_states or self.user_states[user_id].get("state") != "waiting_for_gift_code":
             return
 
         try:
-            code = message.text.strip()
+            code = message.text.strip().upper()
             db = VpnDatabase()
 
-            # دریافت اطلاعات کد از دیتابیس
-            gift_code = db.get_gift_code(code)
-            if not gift_code:
-                await message.reply_text("❌ کد هدیه نامعتبر است!")
+            # Check code validity
+            is_valid, result = db.is_gift_code_valid(code)
+            if not is_valid:
+                await message.reply_text(f"❌ {result}")
                 return
 
-            gift_code_id, _, amount, usage_limit, used_count, _ = gift_code
-
-            # بررسی محدودیت استفاده
-            if used_count >= usage_limit:
-                await message.reply_text("⚠️ تعداد دفعات استفاده از این کد به پایان رسیده است")
-                return
-
-            # بررسی اینکه کاربر قبلاً از این کد استفاده نکرده باشد
-            if db.has_used_gift_code(user_id, gift_code_id):
-                await message.reply_text("⚠️ شما قبلاً از این کد استفاده کرده‌اید")
-                return
-
-            # اعمال کد
-            added_amount = db.use_gift_code(user_id, gift_code_id)
+            # Add balance to user
+            amount = result
+            db.balance_increase(user_id, amount)
             new_balance = db.get_balance(user_id)
 
-            # نمایش نتیجه به کاربر
-            text = f"""
-            🎉 کد هدیه با موفقیت اعمال شد!
+            # Mark code as used
+            db.conn.execute('''UPDATE gift_codes SET used_count = 1 WHERE code = ?''', (code,))
+            db.conn.commit()
 
-            🪪 کد: `{code}`
-            💰 مبلغ اضافه شده: {added_amount:,} تومان
-            💳 موجودی جدید: {new_balance:,} تومان
-                """
+            text = f"""
+    🎉 کد تخفیف با موفقیت اعمال شد!
+
+    🪪 کد: `{code}`
+    💰 مبلغ اضافه شده: {amount:,} تومان
+    💳 موجودی جدید: {new_balance:,} تومان
+            """
 
             keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="money_managment")]]
             await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-            # پاک کردن حالت
-            self.states.pop(user_id, None)
+            # Clear state
+            del self.user_states[user_id]
 
         except Exception as e:
             logger.error(f"Error applying gift code: {e}")
@@ -764,10 +754,10 @@ class PaymentHandler:
 
     async def apply_gift_code(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
-        self.states[user_id] = {"state": "WAITING_FOR_GIFT_CODE"}
+        self.user_states[user_id] = {"state": "waiting_for_gift_code"}
 
-        keyboard = [[InlineKeyboardButton("❌ لغو عملیات", callback_data="cancel_operation")]]
+        keyboard = [[InlineKeyboardButton("❌ لغو", callback_data="cancel_operation")]]
         await callback_query.message.edit_text(
-            "🎁 لطفاً کد هدیه خود را وارد کنید:",
+            "🎁 لطفاً کد تخفیف خود را وارد کنید:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )

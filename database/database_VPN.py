@@ -54,13 +54,13 @@ class VpnDatabase:
                 created_at TEXT NOT NULL
             )''')
 
-
-            cur.execute('''CREATE TABLE IF NOT EXISTS gift_code_usage (
+            cur.execute('''CREATE TABLE IF NOT EXISTS gift_codes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                gift_code_id INTEGER NOT NULL,
-                user_id INTEGER NOT NULL,
-                used_at TEXT NOT NULL,
-                FOREIGN KEY (gift_code_id) REFERENCES gift_codes(id)
+                code TEXT UNIQUE NOT NULL,
+                amount INTEGER NOT NULL,
+                expire_date TEXT NOT NULL,  # New expiration date field
+                created_at TEXT NOT NULL,
+                used_count INTEGER DEFAULT 0
             )''')
 
             self.conn.commit()
@@ -72,6 +72,23 @@ class VpnDatabase:
         if self.conn:
             self.conn.close()
             self.conn = None
+
+    def is_gift_code_valid(self, code):
+        cur = self.conn.cursor()
+        cur.execute('''SELECT amount, expire_date, used_count FROM gift_codes WHERE code = ?''', (code,))
+        result = cur.fetchone()
+        if not result:
+            return False, "کد نامعتبر است"
+
+        amount, expire_date, used_count = result
+        if used_count > 0:
+            return False, "این کد قبلاً استفاده شده است"
+
+        from datetime import datetime
+        if datetime.now() > datetime.strptime(expire_date, "%Y-%m-%d"):
+            return False, "کد منقضی شده است"
+
+        return True, amount
 
     def create_user_if_not_exists(self, telegram_id, first_name, last_name, username, join_date=None):
         cur = self.conn.cursor()

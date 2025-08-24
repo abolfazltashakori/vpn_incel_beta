@@ -6,6 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="f8bf09ac-217a-49e5-ad6f-899b45d05e15" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/database_VPN.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/database_VPN.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/admin_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/admin_menu.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/payment_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/payment_handler.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,6 +43,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/ML/PycharmProjects/sood_link_to_file&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -70,6 +74,11 @@
       <workItem from="1754836744335" duration="366000" />
       <workItem from="1754904656131" duration="9462000" />
       <workItem from="1754927387377" duration="593000" />
+      <workItem from="1754998399992" duration="742000" />
+      <workItem from="1755030043537" duration="17000" />
+      <workItem from="1755075315579" duration="9000" />
+      <workItem from="1755164990281" duration="667000" />
+      <workItem from="1756040559988" duration="264000" />
     </task>
     <servers />
   </component>

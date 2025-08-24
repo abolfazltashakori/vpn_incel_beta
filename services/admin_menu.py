@@ -179,67 +179,55 @@ class AdminMenu:
 
     async def generate_gift_code(self, client, callback_query: CallbackQuery):
         user_id = callback_query.from_user.id
-        # تنظیم وضعیت کاربر
         self.states[user_id] = "WAITING_FOR_GIFT_CODE_DETAILS"
-
         await callback_query.message.edit_text(
-            "📝 لطفاً مشخصات کد هدیه را به فرمت زیر ارسال کنید:\n\n"
-            "`تعداد_استفاده,مقدار_موجودی`\n\n"
-            "مثال: `5,50000`\n"
-            "یعنی کدی که 5 بار قابل استفاده است و هر بار 50,000 تومان افزایش موجودی می‌دهد\n\n"
-            "⚠️ توجه: مقادیر باید بدون فاصله و با کاما جدا شوند"
+            "📝 لطفاً مشخصات کد تخفیف را به فرمت زیر ارسال کنید:\n\n"
+            "`مقدار_تخفیف_تومان,تاریخ_انقضا`\n\n"
+            "مثال: `50000,2024-12-31`\n"
+            "یعنی کد 50,000 تومانی که تا تاریخ 2024-12-31 معتبر است\n\n"
+            "⚠️ توجه: تاریخ باید به فرمت YYYY-MM-DD باشد"
         )
 
     async def process_gift_code_details(self, client, message: Message):
         user_id = message.from_user.id
-        logger.info(f"Processing gift code from user: {user_id}")
-
-        # بررسی وضعیت کاربر
         if user_id not in self.states or self.states[user_id] != "WAITING_FOR_GIFT_CODE_DETAILS":
-            logger.warning(f"User {user_id} is not in correct state for gift code creation")
             return
 
         try:
-            # پارامترها را از پیام جدا کنید
             parts = message.text.split(',')
             if len(parts) != 2:
-                raise ValueError("فرمت نادرست: باید دو مقدار با کاما جدا شده باشند")
+                raise ValueError("فرمت نادرست")
 
-            usage_limit = int(parts[0].strip())
-            amount = int(parts[1].strip())
+            amount = int(parts[0].strip())
+            expire_date = parts[1].strip()
 
-            # ایجاد کد تصادفی
+            # Validate date format
+            from datetime import datetime
+            datetime.strptime(expire_date, "%Y-%m-%d")
+
+            # Generate random code
             import random
             import string
             code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
-            # ذخیره در دیتابیس
+            # Save to database
             db = VpnDatabase()
-            db.create_gift_code(code, amount, usage_limit)
+            created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            db.conn.execute('''INSERT INTO gift_codes (code, amount, expire_date, created_at)
+                            VALUES (?, ?, ?, ?)''', (code, amount, expire_date, created_at))
+            db.conn.commit()
 
-            # نمایش کد به ادمین
             text = f"""
-    ✅ کد هدیه با موفقیت ایجاد شد!
+    ✅ کد تخفیف با موفقیت ایجاد شد!
 
     🪪 کد: `{code}`
     💰 مبلغ: {amount:,} تومان
-    ♻️ تعداد دفعات قابل استفاده: {usage_limit}
+    📅 تاریخ انقضا: {expire_date}
             """
 
-            keyboard = [[InlineKeyboardButton("🔙 بازگشت به منوی ادمین", callback_data="admin_menu")]]
+            keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")]]
             await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-
-            # پاک کردن حالت
             del self.states[user_id]
 
-        except ValueError as ve:
-            logger.error(f"Value error in gift code creation: {ve}")
-            error_msg = "❌ خطا در فرمت داده‌ها!\n\n" \
-                        "لطفاً داده‌ها را به فرمت زیر وارد کنید:\n" \
-                        "`تعداد_استفاده,مقدار_موجودی`\n\n" \
-                        "مثال: `5,50000`"
-            await message.reply_text(error_msg)
-
-        except Exception as e:
-            logger.error(f"Error creating gift code: {e}", exc_info=True)
-            await message.reply_text("❌ خطای سیستمی در ایجاد کد! لطفاً مجدداً تلاش کنید")
+        except ValueError:
+            await message.reply_text("❌ فرمت نادرست! لطفاً به فرمت مثال ارسال کنید")
