@@ -42,35 +42,41 @@ def close_all_db_connections():
     print("✅ تمامی اتصالات دیتابیس بسته شدند")
 
 
-async def initialize_handlers():
+def initialize_handlers():
     global handlers_initialized, admin_menu_instance, payment_handler_instance, vpn_handler_instance
 
-    if not handlers_initialized:
-        try:
-            # ایجاد نمونه‌های هندلر و ذخیره در متغیرهای global
-            admin_menu_instance = AdminMenu(bot)
-            payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
-            vpn_handler_instance = VpnHandler(bot)
+    if handlers_initialized:
+        return
 
+    try:
+        admin_menu_instance = AdminMenu(bot)
+        payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
+        vpn_handler_instance = VpnHandler(bot)
+
+        # از متد register_handlers استفاده می‌کنیم (یا اگر کلاس‌ها register() دارند، از آن استفاده کنید)
+        if hasattr(admin_menu_instance, "register_handlers"):
             admin_menu_instance.register_handlers()
-            print("✅ AdminMenu handlers registered")
+        elif hasattr(admin_menu_instance, "register"):
+            admin_menu_instance.register()
 
+        if hasattr(payment_handler_instance, "register_handlers"):
             payment_handler_instance.register_handlers()
-            print("✅ PaymentHandler handlers registered")
+        elif hasattr(payment_handler_instance, "register"):
+            payment_handler_instance.register()
 
+        if hasattr(vpn_handler_instance, "register_handlers"):
             vpn_handler_instance.register_handlers()
-            print("✅ VpnHandler handlers registered")
+        elif hasattr(vpn_handler_instance, "register"):
+            vpn_handler_instance.register()
 
-            handlers_initialized = True
-            print("✅ All handlers initialized successfully")
-
-        except Exception as e:
-            print(f"❌ Error initializing handlers: {e}")
+        handlers_initialized = True
+        print("✅ All handlers initialized successfully (main)")
+    except Exception as e:
+        print(f"❌ Error initializing handlers (main): {e}")
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
-    # مقداردهی اولیه هندلرها در اولین اجرای start
-    await initialize_handlers()
+
 
     user = message.from_user
     user_id = user.id
@@ -230,4 +236,5 @@ async def price_info(client: Client, query: CallbackQuery):
 
 if __name__ == "__main__":
     print("🤖 ربات در حال اجراست...")
+    initialize_handlers()
     bot.run()
