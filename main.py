@@ -50,14 +50,16 @@ def initialize_handlers():
 
     try:
         # ایجاد نمونه‌ها
+        admin_menu_instance.register()
+        payment_handler_instance.register()
+        vpn_handler_instance.register()
+
         admin_menu_instance = AdminMenu(bot)
         payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
         vpn_handler_instance = VpnHandler(bot)
 
         # ثبت هندلرها با متد register
-        admin_menu_instance.register()
-        payment_handler_instance.register()
-        vpn_handler_instance.register()
+
 
         handlers_initialized = True
         print("✅ All handlers initialized successfully (main)")
