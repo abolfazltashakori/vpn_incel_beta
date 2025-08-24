@@ -29,29 +29,45 @@ handlers_initialized = False
 database_connections = []
 user_states = {}
 user_locks = {}
-admin_menu = None
-payment_handler = None
-vpn_handler = None
-init_lock = asyncio.Lock()  # Lock برای جلوگیری از race condition
+admin_menu_instance = None
+payment_handler_instance = None
+vpn_handler_instance = None
+
+
+def close_all_db_connections():
+    """بستن تمام اتصالات دیتابیس هنگام خروج"""
+    for db in database_connections:
+        if hasattr(db, 'close'):
+            db.close()
+    print("✅ تمامی اتصالات دیتابیس بسته شدند")
 
 
 async def initialize_handlers():
     """تابع برای مقداردهی اولیه هندلرها"""
-    global handlers_initialized, admin_menu, payment_handler, vpn_handler
+    global handlers_initialized, admin_menu_instance, payment_handler_instance, vpn_handler_instance
 
-    async with init_lock:
-        if not handlers_initialized:
-            # ایجاد نمونه‌های هندلر و ذخیره در متغیرهای global
-            admin_menu = AdminMenu(bot)
-            payment_handler = PaymentHandler(bot, user_states, user_locks)
-            vpn_handler = VpnHandler(bot)
+    if not handlers_initialized:
+        try:
+            # ایجاد نمونه‌های هندلر
+            admin_menu_instance = AdminMenu(bot)
+            payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
+            vpn_handler_instance = VpnHandler(bot)
 
-            admin_menu.register_handlers()
-            payment_handler.register_handlers()  # اول ثبت شود
-            vpn_handler.register_handlers()  # در نهایت vpn handler
+            # ثبت هندلرها
+            admin_menu_instance.register_handlers()
+            print("✅ AdminMenu handlers registered")
+
+            payment_handler_instance.register_handlers()
+            print("✅ PaymentHandler handlers registered")
+
+            vpn_handler_instance.register_handlers()
+            print("✅ VpnHandler handlers registered")
 
             handlers_initialized = True
-            print("✅ همه هندلرها با موفقیت ثبت شدند")
+            print("✅ All handlers initialized successfully")
+
+        except Exception as e:
+            print(f"❌ Error initializing handlers: {e}")
 
 
 @bot.on_message(filters.command("start"))
