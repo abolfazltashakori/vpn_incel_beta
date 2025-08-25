@@ -30,9 +30,9 @@ handlers_initialized = False
 database_connections = []
 user_states = {}
 user_locks = {}
-admin_menu_instance = None
-payment_handler_instance = None
-vpn_handler_instance = None
+
+
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,40 +44,17 @@ def close_all_db_connections():
     print("✅ تمامی اتصالات دیتابیس بسته شدند")
 
 
-def initialize_handlers():
-    """
-    ایجاد نمونه‌ها و ثبت هندلرها
-    """
-    global handlers_initialized, admin_menu_instance, payment_handler_instance, vpn_handler_instance
 
-    if handlers_initialized:
-        logger.info("Handlers already initialized, skipping")
-        return
-
-    try:
-        logger.info("Initializing handler instances...")
-
-        # نمونه‌سازی هندلرها
-        admin_menu_instance = AdminMenu(bot)
-        payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
-        vpn_handler_instance = VpnHandler(bot)
-
-        # ثبت هندلرها به ترتیب اهمیت
-        payment_handler_instance.register()
-        vpn_handler_instance.register()
-        admin_menu_instance.register_handlers()
-
-        handlers_initialized = True
-        logger.info("✅ All handlers initialized successfully")
-    except Exception as e:
-        logger.exception(f"❌ Error initializing handlers: {e}")
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
-    try:
-        initialize_handlers()
-    except Exception as e:
-        logger.exception(f"Error in initialize_handlers: {e}")
+    admin_menu_instance = AdminMenu(bot)
+    payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
+    vpn_handler_instance = VpnHandler(bot)
+
+    payment_handler_instance.register()
+    vpn_handler_instance.register()
+    admin_menu_instance.register_handlers()
 
 
     user = message.from_user
@@ -240,7 +217,7 @@ if __name__ == "__main__":
     logger.info("🤖 ربات در حال اجراست...")
 
     try:
-        initialize_handlers()
+
         bot.run()
     except KeyboardInterrupt:
         logger.info("ربات متوقف شد")
