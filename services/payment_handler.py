@@ -63,7 +63,7 @@ def register_payment_handlers(bot):
     bot.add_handler(MessageHandler(
         process_gift_code,
         filters=filters.private & filters.text
-    ), group=2)
+    ), group=1)
 
     bot.add_handler(CallbackQueryHandler(
         buy_new_service_menu,
