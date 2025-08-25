@@ -465,6 +465,7 @@ async def start_balance_increase(client, callback_query: CallbackQuery):
 
     await callback_query.message.edit_text(text, reply_markup=reply_markup)
 
+
 async def handle_amount_message(client, message: Message):
     user_id = message.from_user.id
 
@@ -478,8 +479,11 @@ async def handle_amount_message(client, message: Message):
             return
 
         try:
+            # نرمال کردن اعداد (تبدیل اعداد فارسی/عربی به انگلیسی)
+            normalized_text = normalize_digits(message.text)
+
             # تبدیل مبلغ به عدد (حذف کاما و کاراکترهای غیرعددی)
-            amount_text = message.text.replace(',', '').replace('٬', '').strip()
+            amount_text = normalized_text.replace(',', '').replace('٬', '').strip()
             amount = float(amount_text)
 
             # بررسی محدوده مجاز مبلغ
@@ -515,13 +519,19 @@ async def handle_amount_message(client, message: Message):
         except ValueError:
             await message.reply_text("⚠️ لطفاً یک عدد معتبر وارد کنید (مثال: 50000):")
 
+
 async def get_amount(client, message: Message):
     user_id = message.from_user.id
     if user_id not in user_states or user_states[user_id].get("state") != "waiting_for_amount":
         return
 
     try:
-        amount = int(message.text)
+        # نرمال کردن اعداد (تبدیل اعداد فارسی/عربی به انگلیسی)
+        normalized_text = normalize_digits(message.text)
+
+        # تبدیل به عدد
+        amount = int(normalized_text)
+
         if amount < 50000:
             await message.reply_text("⚠️ مبلغ وارد شده کمتر از حد مجاز است (حداقل ۵۰,۰۰۰ تومان)")
             return
@@ -539,7 +549,7 @@ async def get_amount(client, message: Message):
 💳 *اطلاعات حساب برای واریز*
 
 🏦 بانک: سامان
-🔢 شماره کارت: `5460-0441-8618-6219`
+🔢 شماره کارت: `6219 8618 0441 5460`
 👤 به نام: ابوالفضل تشکری
 
 📸 لطفاً پس از واریز، عکس رسید پرداختی را ارسال کنید
@@ -765,3 +775,14 @@ async def apply_gift_code(client, callback_query: CallbackQuery):
         "🎁 لطفاً کد تخفیف خود را وارد کنید:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+
+def normalize_digits(text):
+    """Convert Persian/Arabic digits to English digits"""
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    arabic_digits = '٠١٢٣٤٥٦٧٨٩'
+    english_digits = '0123456789'
+
+    for p, a, e in zip(persian_digits, arabic_digits, english_digits):
+        text = text.replace(p, e).replace(a, e)
+    return text
