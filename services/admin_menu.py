@@ -119,9 +119,9 @@ async def generate_gift_code(client, callback_query):
     states[user_id] = "WAITING_FOR_GIFT_CODE_DETAILS"
     await callback_query.message.edit_text(
         "📝 لطفاً مشخصات کد تخفیف را به فرمت زیر ارسال کنید:\n\n"
-        "`مقدار_تخفیف_تومان,تاریخ_انقضا`\n\n"
-        "مثال: `50000,2024-12-31`\n"
-        "یعنی کد 50,000 تومانی که تا تاریخ 2024-12-31 معتبر است\n\n"
+        "`مقدار_تخفیف_تومان,تاریخ_انقضا,تعداد_استفاده_مجاز`\n\n"
+        "مثال: `50000,2024-12-31,5`\n"
+        "یعنی کد 50,000 تومانی که تا تاریخ 2024-12-31 معتبر است و 5 بار قابل استفاده\n\n"
         "⚠️ توجه: تاریخ باید به فرمت YYYY-MM-DD باشد"
     )
 
@@ -133,11 +133,12 @@ async def process_gift_code_details(client, message):
 
     try:
         parts = message.text.split(',')
-        if len(parts) != 2:
+        if len(parts) != 3:
             raise ValueError("فرمت نادرست")
 
         amount = int(parts[0].strip())
         expire_date = parts[1].strip()
+        max_usage = int(parts[2].strip())  # تعداد استفاده مجاز
 
         from datetime import datetime
         datetime.strptime(expire_date, "%Y-%m-%d")
@@ -146,8 +147,7 @@ async def process_gift_code_details(client, message):
         import string
         code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
-        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        db.create_gift_code(code, amount, expire_date)
+        db.create_gift_code(code, amount, expire_date, max_usage)  # ارسال پارامتر جدید
 
         text = f"""
 ✅ کد تخفیف با موفقیت ایجاد شد!
@@ -155,6 +155,7 @@ async def process_gift_code_details(client, message):
 🪪 کد: `{code}`
 💰 مبلغ: {amount:,} تومان
 📅 تاریخ انقضا: {expire_date}
+🔢 تعداد استفاده مجاز: {max_usage} بار
         """
 
         keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")]]

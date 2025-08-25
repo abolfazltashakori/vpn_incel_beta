@@ -4,7 +4,7 @@ import threading
 
 
 class VpnDatabase:
-    DB_NAME = 'VPN6_beta.db'
+    DB_NAME = 'VPN_FINAL.db'
     _lock = threading.Lock()  # برای مدیریت دسترسی thread-safe
 
     def __init__(self):
@@ -53,6 +53,7 @@ class VpnDatabase:
                 amount INTEGER NOT NULL,
                 expire_date TEXT NOT NULL,
                 created_at TEXT NOT NULL,
+                max_usage INTEGER DEFAULT 1,  # تعداد استفاده مجاز
                 used_count INTEGER DEFAULT 0
             )''')
 
@@ -73,13 +74,13 @@ class VpnDatabase:
 
     def is_gift_code_valid(self, code):
         cur = self.conn.cursor()
-        cur.execute('''SELECT id, amount, expire_date, used_count FROM gift_codes WHERE code = ?''', (code,))
+        cur.execute('''SELECT id, amount, expire_date, max_usage, used_count FROM gift_codes WHERE code = ?''', (code,))
         result = cur.fetchone()
         if not result:
             return False, "کد نامعتبر است", None
 
-        gift_id, amount, expire_date, used_count = result
-        if used_count > 0:
+        gift_id, amount, expire_date, max_usage, used_count = result
+        if used_count >= max_usage:  # بررسی تعداد استفاده
             return False, "این کد قبلاً استفاده شده است", None
 
         from datetime import datetime
@@ -187,12 +188,12 @@ class VpnDatabase:
                     (new_expire_date, service_username))
         self.conn.commit()
 
-    def create_gift_code(self, code, amount, expire_date):
+    def create_gift_code(self, code, amount, expire_date, max_usage):
         with self._lock:
             cur = self.conn.cursor()
             created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            cur.execute('''INSERT INTO gift_codes (code, amount, expire_date, created_at)
-                        VALUES (?, ?, ?, ?)''', (code, amount, expire_date, created_at))
+            cur.execute('''INSERT INTO gift_codes (code, amount, expire_date, created_at, max_usage)
+                        VALUES (?, ?, ?, ?, ?)''', (code, amount, expire_date, created_at, max_usage))
             self.conn.commit()
 
     def get_gift_code(self, code):
