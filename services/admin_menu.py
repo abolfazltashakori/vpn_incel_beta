@@ -177,3 +177,7 @@ def register_admin_handlers(bot):
     bot.add_handler(MessageHandler(handle_user_id_input, filters=filters.private & filters.text), group=10)
     bot.add_handler(CallbackQueryHandler(admin_menu_bot_analays, filters=filters.regex("^admin_menu_bot_analays$")),
                     group=10)
+    bot.add_handler(MessageHandler(
+        handle_user_id_input,
+        filters=filters.private & filters.text
+    ), group=2)
