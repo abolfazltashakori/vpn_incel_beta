@@ -34,10 +34,10 @@ user_locks = {}
 admin_menu_instance = AdminMenu(bot)
 payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
 vpn_handler_instance = VpnHandler(bot)
-
+admin_menu_instance.register_handlers()
 payment_handler_instance.register()
 vpn_handler_instance.register()
-admin_menu_instance.register_handlers()
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
