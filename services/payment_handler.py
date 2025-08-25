@@ -1,5 +1,6 @@
 import logging
 from pyrogram import filters
+from pyrogram.filters import group
 from pyrogram.handlers import CallbackQueryHandler
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import (
@@ -70,111 +71,112 @@ class PaymentHandler:
         # دسته‌بندی‌های اصلی
         self.bot.add_handler(CallbackQueryHandler(
             self.apply_gift_code,
-            filters.regex("^apply_gift_code$")
-        ))
+            filters=filters.regex("^apply_gift_code$")
+        ), group=2)
+
         self.bot.add_handler(MessageHandler(
             self.process_gift_code,
-            filters.private & filters.text
-        ))
+            filters=filters.private & filters.text
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.buy_new_service_menu,
-            filters.regex("^buy_new_service_menu$")
-        ))
+            filters=filters.regex("^buy_new_service_menu$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.gift_code_menu,
-            filters.regex("^gift_code_menu$")
-        ))
+            filters=filters.regex("^gift_code_menu$")
+        ), group=2)
 
+        # خریدهای مختلف
         self.bot.add_handler(CallbackQueryHandler(
             self.normal_buy_service,
-            filters.regex("^normal$")
-        ))
+            filters=filters.regex("^normal$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.lifetime_buy_service,
-            filters.regex("^lifetime$")
-        ))
+            filters=filters.regex("^lifetime$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.unlimited_buy_service,
-            filters.regex("^unlimited$")
-        ))
+            filters=filters.regex("^unlimited$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.longtime_buy_service,
-            filters.regex("^longtime$")
-        ))
+            filters=filters.regex("^longtime$")
+        ), group=2)
 
-        # بسته‌های خاص
         self.bot.add_handler(CallbackQueryHandler(
             self.handle_package_selection,
-            filters.regex(r"^(normal|lifetime|unlimited|longtime)_\d+$")
-        ))
+            filters=filters.regex(r"^(normal|lifetime|unlimited|longtime)_\d+$")
+        ), group=2)
 
-        # بازگشت و تایید
         self.bot.add_handler(CallbackQueryHandler(
             self.back_to_category,
-            filters.regex(r"^back_to_(normal|lifetime|unlimited|longtime)$")
-        ))
+            filters=filters.regex(r"^back_to_(normal|lifetime|unlimited|longtime)$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.confirm_purchase,
-            filters.regex(r"^confirm_(.*)$")
-        ))
+            filters=filters.regex(r"^confirm_(.*)$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.back_to_vpn_menu,
-            filters.regex("^back_to_vpn_menu$")
-        ))
+            filters=filters.regex("^back_to_vpn_menu$")
+        ), group=2)
 
+        # مدیریت پول
         self.bot.add_handler(CallbackQueryHandler(
             self.money_managment,
-            filters.regex("^money_managment$")
-        ))
+            filters=filters.regex("^money_managment$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.balance_increase_menu,
-            filters.regex("^balance_increase_menu$")
-        ))
+            filters=filters.regex("^balance_increase_menu$")
+        ), group=2)
 
-        # سیستم افزایش موجودی
+        # سیستم افزایش موجودی — پیام‌ها و عکس‌ها را در گروه 2 قرار می‌دهیم
         self.bot.add_handler(MessageHandler(
             self.get_amount,
-            filters.private & filters.text & filters.regex(r'^\d+$')
-        ))
+            filters=filters.private & filters.text & filters.regex(r'^\d+$')
+        ), group=2)
 
         self.bot.add_handler(MessageHandler(
             self.get_receipt,
-            filters.private & filters.photo
-        ))
+            filters=filters.private & filters.photo
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.cancel_operation,
-            filters.regex("^cancel_operation$")
-        ))
+            filters=filters.regex("^cancel_operation$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.approve_balance,
-            filters.regex(r"^approve_balance_\d+_\d+$")
-        ))
+            filters=filters.regex(r"^approve_balance_\d+_\d+$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.reject_balance,
-            filters.regex(r"^reject_balance_\d+$")
-        ))
+            filters=filters.regex(r"^reject_balance_\d+$")
+        ), group=2)
 
         self.bot.add_handler(CallbackQueryHandler(
             self.start_balance_increase,
-            filters.regex("^start_balance_increase$")
-        ))
+            filters=filters.regex("^start_balance_increase$")
+        ), group=2)
 
-        # اضافه کردن هندلر handle_amount_message که قبلاً فراموش شده بود
+        # هندلرهای متنی مرتبط با پرداخت (مثلاً capture amounts)
         self.bot.add_handler(MessageHandler(
             self.handle_amount_message,
-            filters.private & filters.text
-        ))
+            filters=filters.private & filters.text
+        ), group=2)
 
     async def money_managment(self, client, callback_query: CallbackQuery):
         try:

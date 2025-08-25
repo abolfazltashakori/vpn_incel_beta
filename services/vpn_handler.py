@@ -16,31 +16,12 @@ class VpnHandler:
         self.register_handlers()
 
     def register_handlers(self):
-        # ثبت هندلر با استفاده از CallbackQueryHandler
-        self.bot.add_handler(CallbackQueryHandler(
-            self.handle_test_vpn,
-            filters.regex("^test_vpn_menu$")
-        ))
-        self.bot.add_handler(CallbackQueryHandler(
-            self.show_user_account_info,
-            filters.regex("^user_details$")
-        ))
-        self.bot.add_handler(CallbackQueryHandler(
-            self.show_user_services,
-            filters.regex("^my_service_menu$")
-        ))
-        self.bot.add_handler(CallbackQueryHandler(
-            self.show_service_details,
-            filters.regex(r"^service_details_")
-        ))
-        self.bot.add_handler(CallbackQueryHandler(
-            self.handle_renew_service,
-            filters.regex(r"^renew_service_")
-        ))
-        self.bot.add_handler(CallbackQueryHandler(
-            self.confirm_renew_service,
-            filters.regex(r"^confirm_renew_")
-        ))
+        self.bot.add_handler(CallbackQueryHandler(self.handle_test_vpn, filters=filters.regex("^test_vpn_menu$")), group=3)
+        self.bot.add_handler(CallbackQueryHandler(self.show_user_account_info, filters=filters.regex("^user_details$")), group=3)
+        self.bot.add_handler(CallbackQueryHandler(self.show_user_services, filters=filters.regex("^my_service_menu$")), group=3)
+        self.bot.add_handler(CallbackQueryHandler(self.show_service_details, filters=filters.regex(r"^service_details_\d+$")), group=3)
+        self.bot.add_handler(CallbackQueryHandler(self.handle_renew_service, filters=filters.regex(r"^renew_service_\d+$")), group=3)
+        self.bot.add_handler(CallbackQueryHandler(self.confirm_renew_service, filters=filters.regex(r"^confirm_renew_\d+$")), group=3)
 
     async def show_user_account_info(self, client, callback_query):
         user_id = callback_query.from_user.id

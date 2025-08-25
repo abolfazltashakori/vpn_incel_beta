@@ -1,5 +1,6 @@
 import logger
 from pyrogram import filters
+from pyrogram.filters import group
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import (
     InlineKeyboardButton,
@@ -22,40 +23,45 @@ class AdminMenu:
         self.states = {}  # ذخیره وضعیت هر کاربر
 
     def register_handlers(self):
-        # هندلر منوی اصلی ادمین
-        self.bot.add_handler(CallbackQueryHandler(
-            self.show_menu,
-            filters.regex("^admin_menu$")
-        ))
-        # اضافه کردن هندلر برای منوی ساخت کد
-        self.bot.add_handler(CallbackQueryHandler(
-            self.create_gift_code_menu,
-            filters.regex("^create_gift_code_menu$")
-        ))
-        self.bot.add_handler(CallbackQueryHandler(
-            self.generate_gift_code,
-            filters.regex("^generate_gift_code_menu$")
-        ))
-        self.bot.add_handler(MessageHandler(
-            self.process_gift_code_details,
-            filters.private & filters.text
-        ))
-        # هندلر گزینه "مشخصات کاربر"
-        self.bot.add_handler(CallbackQueryHandler(
-            self.admin_menu_user_detail,
-            filters.regex("^admin_menu_user_detail$")
-        ))
+        def register_handlers(self):
+            self.bot.add_handler(CallbackQueryHandler(
+                self.show_menu,
+                filters=filters.regex("^admin_menu$")),
+                group=10
+            )
+            self.bot.add_handler(CallbackQueryHandler(
+                self.create_gift_code_menu,
+                filters=filters.regex("^create_gift_code_menu$")),
+                group=10
+            )
+            self.bot.add_handler(CallbackQueryHandler(
+                self.generate_gift_code,
+                filters=filters.regex("^generate_gift_code_menu$")),
+                group=10
+            )
+            # پیام‌های متنی که مخصوص AdminMenu هستند (با state چک می‌شوند) — group بالا تا fallback باشند
+            self.bot.add_handler(MessageHandler(
+                self.process_gift_code_details,
+                filters=filters.private & filters.text),
+                group=10
+            )
+            self.bot.add_handler(CallbackQueryHandler(
+                self.admin_menu_user_detail,
+                filters=filters.regex("^admin_menu_user_detail$")),
+                group=10
+            )
 
-        self.bot.add_handler(MessageHandler(
-            self.handle_user_id_input,
-            filters.private & filters.text
-        ))
+            self.bot.add_handler(MessageHandler(
+                self.handle_user_id_input,
+                filters=filters.private & filters.text),
+                group=10
+            )
 
-        # هندلر گزینه "آمار خرید"
-        self.bot.add_handler(CallbackQueryHandler(
-            self.admin_menu_bot_analays,
-            filters.regex("^admin_menu_bot_analays$")
-        ))
+            self.bot.add_handler(CallbackQueryHandler(
+                self.admin_menu_bot_analays,
+                filters=filters.regex("^admin_menu_bot_analays$")),
+                group=10
+            )
 
     def _get_admin_menu_data(self, first_name=None):
         keyboard = [
