@@ -46,14 +46,14 @@ class VpnDatabase:
                 FOREIGN KEY (telegram_id) REFERENCES users_vpn (telegram_id)
             )''')
 
-            # Fixed gift_codes table with correct structure
+            # Remove the comment from the SQL string below
             cur.execute('''CREATE TABLE IF NOT EXISTS gift_codes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 code TEXT UNIQUE NOT NULL,
                 amount INTEGER NOT NULL,
                 expire_date TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                max_usage INTEGER DEFAULT 1,  # تعداد استفاده مجاز
+                max_usage INTEGER DEFAULT 1,
                 used_count INTEGER DEFAULT 0
             )''')
 
