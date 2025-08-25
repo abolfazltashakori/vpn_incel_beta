@@ -112,10 +112,14 @@ def register_payment_handlers(bot):
         filters=filters.regex("^balance_increase_menu$")
     ), group=2)
 
-    # سیستم افزایش موجودی
     bot.add_handler(MessageHandler(
         get_amount,
-        filters=filters.private & filters.text & filters.regex(r'^\d+$')
+        filters=filters.private & filters.text & filters.regex(r'^[\d,٬۰-۹٠-٩]+$')
+    ), group=2)
+
+    bot.add_handler(MessageHandler(
+        handle_amount_message,
+        filters=filters.private & filters.text
     ), group=2)
 
     bot.add_handler(MessageHandler(
@@ -143,11 +147,7 @@ def register_payment_handlers(bot):
         filters=filters.regex("^start_balance_increase$")
     ), group=2)
 
-    # هندلرهای متنی مرتبط با پرداخت
-    bot.add_handler(MessageHandler(
-        handle_amount_message,
-        filters=filters.private & filters.text
-    ), group=2)
+
 
 # Functions implementation
 async def money_managment(client, callback_query: CallbackQuery):
