@@ -46,6 +46,21 @@ def register_payment_handlers(bot):
     ), group=2)
 
     bot.add_handler(MessageHandler(
+        get_amount,
+        filters=filters.private & filters.text & filters.regex(r'^[\d,٬۰-۹٠-٩]+$')
+    ), group=2)
+
+    bot.add_handler(MessageHandler(
+        handle_amount_message,
+        filters=filters.private & filters.text
+    ), group=2)
+
+    bot.add_handler(MessageHandler(
+        get_receipt,
+        filters=filters.private & filters.photo
+    ), group=2)
+
+    bot.add_handler(MessageHandler(
         process_gift_code,
         filters=filters.private & filters.text
     ), group=2)
@@ -112,20 +127,9 @@ def register_payment_handlers(bot):
         filters=filters.regex("^balance_increase_menu$")
     ), group=2)
 
-    bot.add_handler(MessageHandler(
-        get_amount,
-        filters=filters.private & filters.text & filters.regex(r'^[\d,٬۰-۹٠-٩]+$')
-    ), group=2)
 
-    bot.add_handler(MessageHandler(
-        handle_amount_message,
-        filters=filters.private & filters.text
-    ), group=2)
 
-    bot.add_handler(MessageHandler(
-        get_receipt,
-        filters=filters.private & filters.photo
-    ), group=2)
+
 
     bot.add_handler(CallbackQueryHandler(
         cancel_operation,
