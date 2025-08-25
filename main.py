@@ -1,6 +1,6 @@
 import sys
 import os
-import logger
+import logging
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery, KeyboardButton, \
     ReplyKeyboardMarkup
@@ -34,7 +34,8 @@ admin_menu_instance = None
 payment_handler_instance = None
 vpn_handler_instance = None
 
-
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 def close_all_db_connections():
     """بستن تمام اتصالات دیتابیس هنگام خروج"""
     for db in database_connections:
