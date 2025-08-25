@@ -1,147 +1,83 @@
-import logger
+# admin_menu.py
 from pyrogram import filters
-from pyrogram.filters import group
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
-from pyrogram.types import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    CallbackQuery,
-    Message
-)
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from database.database_VPN import VpnDatabase
 from utils.persian_tools import to_jalali
 import logging
-# وضعیت‌های کانورسیشن
+
+db = VpnDatabase()
+states = {}
+
 WAITING_FOR_USER_ID = 1
 ADMIN_MENU = 0
 
 
-class AdminMenu:
-    def __init__(self, bot):
-        self.bot = bot
-        self.db = VpnDatabase()
-        self.states = {}  # ذخیره وضعیت هر کاربر
+def _get_admin_menu_data(first_name=None):
+    keyboard = [
+        [InlineKeyboardButton("مشخصات کاربر", callback_data="admin_menu_user_detail")],
+        [InlineKeyboardButton("ساخت کد هدیه", callback_data="create_gift_code_menu")],
+        [InlineKeyboardButton("آمار خرید", callback_data="admin_menu_bot_analays")],
+        [InlineKeyboardButton("بازگشت به منوی اصلی", callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    text = "به پنل ادمین خوش آمدید"
+    if first_name:
+        text = f"{first_name} عزیز، به پنل ادمین خوش آمدید"
+    return text, reply_markup
 
-    def register_handlers(self):
-        def register_handlers(self):
-            self.bot.add_handler(CallbackQueryHandler(
-                self.show_menu,
-                filters=filters.regex("^admin_menu$")),
-                group=10
-            )
-            self.bot.add_handler(CallbackQueryHandler(
-                self.create_gift_code_menu,
-                filters=filters.regex("^create_gift_code_menu$")),
-                group=10
-            )
-            self.bot.add_handler(CallbackQueryHandler(
-                self.generate_gift_code,
-                filters=filters.regex("^generate_gift_code_menu$")),
-                group=10
-            )
-            # پیام‌های متنی که مخصوص AdminMenu هستند (با state چک می‌شوند) — group بالا تا fallback باشند
-            self.bot.add_handler(MessageHandler(
-                self.process_gift_code_details,
-                filters=filters.private & filters.text),
-                group=10
-            )
-            self.bot.add_handler(CallbackQueryHandler(
-                self.admin_menu_user_detail,
-                filters=filters.regex("^admin_menu_user_detail$")),
-                group=10
-            )
 
-            self.bot.add_handler(MessageHandler(
-                self.handle_user_id_input,
-                filters=filters.private & filters.text),
-                group=10
-            )
+async def show_menu(client, callback_query):
+    await callback_query.answer()
+    user_id = callback_query.from_user.id
+    text, reply_markup = _get_admin_menu_data()
+    await callback_query.message.edit_text(text, reply_markup=reply_markup)
+    states[user_id] = ADMIN_MENU
 
-            self.bot.add_handler(CallbackQueryHandler(
-                self.admin_menu_bot_analays,
-                filters=filters.regex("^admin_menu_bot_analays$")),
-                group=10
-            )
 
-    def _get_admin_menu_data(self, first_name=None):
-        keyboard = [
-            [InlineKeyboardButton("مشخصات کاربر", callback_data="admin_menu_user_detail")],
-            [InlineKeyboardButton("ساخت کد هدیه",callback_data="create_gift_code_menu")],
-            [InlineKeyboardButton("آمار خرید", callback_data="admin_menu_bot_analays")],
-            [InlineKeyboardButton("بازگشت به منوی اصلی", callback_data="back_to_menu")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        text = "به پنل ادمین خوش آمدید"
-        if first_name:
-            text = f"{first_name} عزیز، به پنل ادمین خوش آمدید"
-        return text, reply_markup
+async def create_gift_code_menu(client, callback_query):
+    keyboard = [
+        [InlineKeyboardButton("ساخت کد", callback_data="generate_gift_code_menu")],
+        [InlineKeyboardButton("بازگشت", callback_data="admin_menu")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    text = "فرمت ساخت کد : تعداد استفاده,مقدار اضافه شدن موجودی تومان"
+    await callback_query.message.edit_text(text, reply_markup=reply_markup)
 
-    async def create_gift_code_menu(self, client, callback_query: CallbackQuery):
-        keyboard = [
-            [InlineKeyboardButton("ساخت کد", callback_data="generate_gift_code_menu")],
-            [InlineKeyboardButton("بازگشت", callback_data="admin_menu")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        text = "فرمت ساخت کد : تعداد استفاده,مقدار اضافه شدن موجودی تومان"
-        await callback_query.message.edit_text(text, reply_markup=reply_markup)
 
-    async def send_admin_menu(self, chat_id, user_id, message_id=None):
-        """Helper to send/edit admin menu"""
-        text, reply_markup = self._get_admin_menu_data()
-        if message_id:
-            await self.bot.edit_message_text(chat_id, message_id, text, reply_markup=reply_markup)
-        else:
-            await self.bot.send_message(chat_id, text, reply_markup=reply_markup)
-        self.states[user_id] = ADMIN_MENU
+async def admin_menu_user_detail(client, callback_query):
+    user_id = callback_query.from_user.id
+    states[user_id] = WAITING_FOR_USER_ID
+    await callback_query.answer()
+    await callback_query.message.edit_text(
+        "لطفاً آیدی عددی کاربر را ارسال کنید:\n\n"
+        "⚠️ برای لغو عملیات /cancel را ارسال کنید"
+    )
 
-    async def show_menu(self, client, callback_query: CallbackQuery):
-        await callback_query.answer()
-        user_id = callback_query.from_user.id
-        await self.send_admin_menu(
-            chat_id=callback_query.message.chat.id,
-            user_id=user_id,
-            message_id=callback_query.message.id
-        )
 
-    async def admin_menu_user_detail(self, client, callback_query: CallbackQuery):
-        # تنظیم وضعیت به انتظار دریافت آیدی کاربر
-        user_id = callback_query.from_user.id
-        self.states[user_id] = WAITING_FOR_USER_ID
+async def handle_user_id_input(client, message):
+    user_id = message.from_user.id
+    current_state = states.get(user_id)
 
-        await callback_query.answer()
-        await callback_query.message.edit_text(
-            "لطفاً آیدی عددی کاربر را ارسال کنید:\n\n"
-            "⚠️ برای لغو عملیات /cancel را ارسال کنید"
-        )
+    if current_state != WAITING_FOR_USER_ID:
+        return
 
-    async def handle_user_id_input(self, client, message: Message):
-        user_id = message.from_user.id
-        current_state = self.states.get(user_id)
+    if message.text.lower() == "/cancel":
+        states.pop(user_id, None)
+        text, reply_markup = _get_admin_menu_data()
+        await message.reply_text("❌ عملیات لغو شد", reply_markup=reply_markup)
+        return
 
-        # فقط اگر در حالت انتظار آیدی هستیم پردازش شود
-        if current_state != WAITING_FOR_USER_ID:
+    try:
+        target_user_id = message.text.strip()
+        user_info = db.get_user_info(target_user_id)
+
+        if not user_info:
+            await message.reply_text("❌ کاربری با این آیدی یافت نشد!")
             return
 
-        if message.text.lower() == "/cancel":
-            # پاک کردن وضعیت و بازگشت به منو
-            self.states.pop(user_id, None)
-            text, reply_markup = self._get_admin_menu_data()
-            await message.reply_text("❌ عملیات لغو شد", reply_markup=reply_markup)
-            return
-
-        try:
-            target_user_id = message.text.strip()
-
-            # چک کردن وجود کاربر در دیتابیس
-            user_info = self.db.get_user_info(target_user_id)
-
-            if not user_info:
-                await message.reply_text("❌ کاربری با این آیدی یافت نشد!")
-                return
-
-            # نمایش اطلاعات کاربر
-            join_date = to_jalali(user_info[5]) if user_info[5] else "نامشخص"
-            text = f"""
+        join_date = to_jalali(user_info[5]) if user_info[5] else "نامشخص"
+        text = f"""
 📋 مشخصات کاربر:
 
 🪪 شناسه کاربری: {user_info[0]}
@@ -156,82 +92,88 @@ class AdminMenu:
 🔖 گروه کاربری: {user_info[10]}
 """
 
-            # دکمه بازگشت
-            keyboard = [
-                [InlineKeyboardButton("🔙 بازگشت به منوی ادمین", callback_data="admin_menu")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-
-            await message.reply_text(text, reply_markup=reply_markup)
-            self.states[user_id] = ADMIN_MENU
-
-        except Exception as e:
-            logging.error(f"Error in handle_user_id_input: {e}")
-            await message.reply_text("⚠️ خطا در پردازش درخواست! لطفاً مجدداً تلاش کنید.")
-
-    async def admin_menu_bot_analays(self, client, callback_query: CallbackQuery):
-        await callback_query.answer()
-        text = "📊 آمار خرید کلی ربات:\n\n"
-        text += "• تعداد کاربران: 100\n"
-        text += "• تعداد خریدهای موفق: 50\n"
-        text += "• درآمد کل: 5,000,000 تومان"
-
-        keyboard = [
-            [InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")]
-        ]
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت به منوی ادمین", callback_data="admin_menu")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
+        await message.reply_text(text, reply_markup=reply_markup)
+        states[user_id] = ADMIN_MENU
 
-        await callback_query.message.edit_text(text, reply_markup=reply_markup)
+    except Exception as e:
+        logging.error(f"Error in handle_user_id_input: {e}")
+        await message.reply_text("⚠️ خطا در پردازش درخواست! لطفاً مجدداً تلاش کنید.")
 
-    async def generate_gift_code(self, client, callback_query: CallbackQuery):
-        user_id = callback_query.from_user.id
-        self.states[user_id] = "WAITING_FOR_GIFT_CODE_DETAILS"
-        await callback_query.message.edit_text(
-            "📝 لطفاً مشخصات کد تخفیف را به فرمت زیر ارسال کنید:\n\n"
-            "`مقدار_تخفیف_تومان,تاریخ_انقضا`\n\n"
-            "مثال: `50000,2024-12-31`\n"
-            "یعنی کد 50,000 تومانی که تا تاریخ 2024-12-31 معتبر است\n\n"
-            "⚠️ توجه: تاریخ باید به فرمت YYYY-MM-DD باشد"
-        )
 
-    async def process_gift_code_details(self, client, message: Message):
-        user_id = message.from_user.id
-        if user_id not in self.states or self.states[user_id] != "WAITING_FOR_GIFT_CODE_DETAILS":
-            return
+async def admin_menu_bot_analays(client, callback_query):
+    await callback_query.answer()
+    text = "📊 آمار خرید کلی ربات:\n\n"
+    text += "• تعداد کاربران: 100\n"
+    text += "• تعداد خریدهای موفق: 50\n"
+    text += "• درآمد کل: 5,000,000 تومان"
 
-        try:
-            parts = message.text.split(',')
-            if len(parts) != 2:
-                raise ValueError("فرمت نادرست")
+    keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await callback_query.message.edit_text(text, reply_markup=reply_markup)
 
-            amount = int(parts[0].strip())
-            expire_date = parts[1].strip()
 
-            # Validate date format
-            from datetime import datetime
-            datetime.strptime(expire_date, "%Y-%m-%d")
+async def generate_gift_code(client, callback_query):
+    user_id = callback_query.from_user.id
+    states[user_id] = "WAITING_FOR_GIFT_CODE_DETAILS"
+    await callback_query.message.edit_text(
+        "📝 لطفاً مشخصات کد تخفیف را به فرمت زیر ارسال کنید:\n\n"
+        "`مقدار_تخفیف_تومان,تاریخ_انقضا`\n\n"
+        "مثال: `50000,2024-12-31`\n"
+        "یعنی کد 50,000 تومانی که تا تاریخ 2024-12-31 معتبر است\n\n"
+        "⚠️ توجه: تاریخ باید به فرمت YYYY-MM-DD باشد"
+    )
 
-            # Generate random code
-            import random
-            import string
-            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
-            # Save to database
-            db = VpnDatabase()
-            created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            db.create_gift_code(code, amount, expire_date)
+async def process_gift_code_details(client, message):
+    user_id = message.from_user.id
+    if user_id not in states or states[user_id] != "WAITING_FOR_GIFT_CODE_DETAILS":
+        return
 
-            text = f"""
-    ✅ کد تخفیف با موفقیت ایجاد شد!
+    try:
+        parts = message.text.split(',')
+        if len(parts) != 2:
+            raise ValueError("فرمت نادرست")
 
-    🪪 کد: `{code}`
-    💰 مبلغ: {amount:,} تومان
-    📅 تاریخ انقضا: {expire_date}
-            """
+        amount = int(parts[0].strip())
+        expire_date = parts[1].strip()
 
-            keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")]]
-            await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-            del self.states[user_id]
+        from datetime import datetime
+        datetime.strptime(expire_date, "%Y-%m-%d")
 
-        except ValueError:
-            await message.reply_text("❌ فرمت نادرست! لطفاً به فرمت مثال ارسال کنید")
+        import random
+        import string
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        db.create_gift_code(code, amount, expire_date)
+
+        text = f"""
+✅ کد تخفیف با موفقیت ایجاد شد!
+
+🪪 کد: `{code}`
+💰 مبلغ: {amount:,} تومان
+📅 تاریخ انقضا: {expire_date}
+        """
+
+        keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="admin_menu")]]
+        await message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        del states[user_id]
+
+    except ValueError:
+        await message.reply_text("❌ فرمت نادرست! لطفاً به فرمت مثال ارسال کنید")
+
+
+def register_admin_handlers(bot):
+    bot.add_handler(CallbackQueryHandler(show_menu, filters=filters.regex("^admin_menu$")), group=10)
+    bot.add_handler(CallbackQueryHandler(create_gift_code_menu, filters=filters.regex("^create_gift_code_menu$")),
+                    group=10)
+    bot.add_handler(CallbackQueryHandler(generate_gift_code, filters=filters.regex("^generate_gift_code_menu$")),
+                    group=10)
+    bot.add_handler(MessageHandler(process_gift_code_details, filters=filters.private & filters.text), group=10)
+    bot.add_handler(CallbackQueryHandler(admin_menu_user_detail, filters=filters.regex("^admin_menu_user_detail$")),
+                    group=10)
+    bot.add_handler(MessageHandler(handle_user_id_input, filters=filters.private & filters.text), group=10)
+    bot.add_handler(CallbackQueryHandler(admin_menu_bot_analays, filters=filters.regex("^admin_menu_bot_analays$")),
+                    group=10)
