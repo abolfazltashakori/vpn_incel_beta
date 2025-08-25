@@ -31,8 +31,13 @@ database_connections = []
 user_states = {}
 user_locks = {}
 
+admin_menu_instance = AdminMenu(bot)
+payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
+vpn_handler_instance = VpnHandler(bot)
 
-
+payment_handler_instance.register()
+vpn_handler_instance.register()
+admin_menu_instance.register_handlers()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,13 +53,7 @@ def close_all_db_connections():
 
 @bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
-    admin_menu_instance = AdminMenu(bot)
-    payment_handler_instance = PaymentHandler(bot, user_states, user_locks)
-    vpn_handler_instance = VpnHandler(bot)
 
-    payment_handler_instance.register()
-    vpn_handler_instance.register()
-    admin_menu_instance.register_handlers()
 
 
     user = message.from_user
